@@ -20,7 +20,7 @@ set -euo pipefail
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-readonly VERSION="1.0.0"
+readonly VERSION="1.1.0"
 readonly INSTALLER_URL="https://swetanksubham.com/setup/claude/vscode"
 
 # ── Colors & Formatting ──────────────────────────────────────────────────────
@@ -257,6 +257,21 @@ Use `Optional`/`Option`/`Result` types everywhere. Never return or accept null/N
 ### 5. Prefer Standard Library Utilities
 If the language provides a utility, use it. Do not reimplement `Objects.isNull`, `Comparator.comparing`, `itertools`, `std::cmp`, or anything the platform already offers.
 
+### 6. Self-Explanatory Code — No Comments
+Code must read like well-written prose. Use descriptive variable names, function names, class names, and module structure to convey intent. Do not add inline comments, block comments, or documentation comments inside code files. If you feel the need to write a comment, that is a signal to rename, restructure, or extract a function instead. The only exceptions are: (a) legal/license headers if required by the project, and (b) TODO markers for genuinely unfinished work tracked in `tasklist.md`.
+
+### 7. Code Like a Senior Engineer
+Write code as a highly experienced senior software engineer would. This means: choosing the right abstraction level (not too clever, not too naive), anticipating edge cases, designing for change, naming things precisely, keeping functions small and focused, avoiding premature optimization but not ignoring performance, and preferring clarity over brevity. Every file you produce should pass a strict code review from a principal engineer without pushback.
+
+### 8. Break Down Before Building
+Never start implementing a large requirement as a monolith. Decompose every problem into small, well-defined, independently testable tasks. Write these into `.claude/context/tasklist.md` and `.claude/context/plan.md` before writing any implementation code. Follow the plan throughout, checking off tasks as they complete. If the scope changes mid-work, update the plan first, then continue.
+
+### 9. Testing Is Not Optional
+Every feature, module, and significant function must be covered by tests. Write unit tests for individual logic and integration tests for module boundaries and API endpoints. Tests are written alongside implementation, not after. Use the ecosystem's standard test framework. Test names describe behavior, not implementation (e.g., `should_return_empty_when_no_items_found` not `test_get_items`).
+
+### 10. Follow Up With the User
+Do not assume. When requirements are ambiguous, when there are multiple valid approaches, when a decision has significant trade-offs, or when something seems off, stop and ask the user. Present the options clearly, explain the trade-offs, and let them decide. It is always better to ask one clarifying question than to build the wrong thing. After completing significant milestones, check in with the user before proceeding to the next phase.
+
 ---
 
 ## Language-Specific Standards
@@ -334,8 +349,25 @@ Every project gets a `.claude/context/` directory at the project root. This is t
 - **Medium (10-30 files)**: break into logical modules, generate module by module
 - **Large (30+ files)**: full phased approach with planning
 
+### Task Decomposition
+For any non-trivial request, before writing code:
+1. Break the requirement into small, concrete tasks in `.claude/context/tasklist.md`
+2. Order tasks by dependency (what must exist before what)
+3. Write the implementation plan in `.claude/context/plan.md`
+4. Follow the plan step by step, updating progress as you go
+5. Check in with the user at phase boundaries or when decisions arise
+
+### Testing Strategy
+Testing is a first-class part of every task, not an afterthought:
+- Write tests alongside implementation, not after
+- Unit tests for individual functions, methods, and business logic
+- Integration tests for module boundaries, API endpoints, and data flows
+- Mirror the source directory structure in the test directory
+- Use descriptive test names that explain the expected behavior
+- Include edge cases: empty inputs, boundary values, error conditions, null/absent values
+- Use the ecosystem's standard test framework (pytest, JUnit 5, cargo test, Jest/Vitest, Go testing, etc.)
+
 ### Always Include When Relevant
-- Test scaffolding (unit + integration) mirroring source structure
 - Database schema and migrations using the ecosystem's standard tool
 - Docker: multi-stage builds, non-root user, docker-compose for local dev
 - Constants/config documented in `constants-map.md`
@@ -347,9 +379,11 @@ Before presenting code:
 - Optional/Result types used instead of raw nulls
 - Standard library utilities used where available
 - SOLID principles followed
+- Code is self-explanatory with no inline comments
 - Language-specific standards met
-- `.claude/context/` created/updated
-- Tests included where appropriate
+- `.claude/context/` created/updated with plan and tasklist
+- Unit and integration tests included
+- Existing codebase patterns matched exactly (if applicable)
 CLAUDE_MD_EOF
 }
 
@@ -360,10 +394,10 @@ paths:
   - "**"
 ---
 
-# General Project Architect Rules
+# General Coding Standards
 
 ## Deep Dive First
-Before making any changes to this project, read all files in `.claude/context/` if they exist. If they don't exist, perform a full codebase analysis and create them before writing any code.
+Before making any changes to this project, read all files in `.claude/context/` if they exist. If they don't exist, perform a full codebase analysis and create them before writing any code. This applies to both new and existing projects.
 
 ## Project Memory
 Maintain `.claude/context/` with these files, updated after every significant change:
@@ -372,19 +406,33 @@ Maintain `.claude/context/` with these files, updated after every significant ch
 - `progress.md` - what's complete, in progress, pending
 - `constants-map.md` - where config/constants live, what they contain
 - `dependencies.md` - key libraries, why chosen, versions
-- `tasklist.md` - planned work items with checkboxes
-- `plan.md` - project plan, phases, milestones
+- `tasklist.md` - planned work items broken down into small tasks, with checkboxes
+- `plan.md` - project plan, phases, milestones, implementation order
+
+## Task Decomposition
+Never start a large requirement as a monolith. Break every problem into small, testable tasks. Write them into `tasklist.md` and `plan.md` before coding. Follow the plan throughout, updating as tasks complete. If scope changes, update the plan first.
 
 ## Universal Principles
 - SOLID principles: every file has one clear responsibility
 - Immutability by default: all variables/fields immutable unless mutation is justified
-- Zero hardcoded values: use centralized constants/config files
+- Zero hardcoded values: all constants, magic numbers, URLs, timeouts, and config values go in centralized constants/config files. Reference them everywhere else.
 - No raw nulls: use Optional/Result/Option types
 - Prefer standard library utilities over custom reimplementations
-- For existing codebases: match every existing convention exactly
+
+## Self-Explanatory Code
+Code must speak for itself. Use descriptive names for variables, functions, classes, and modules. Do NOT write inline comments, block comments, or documentation comments inside code files. If code needs a comment to be understood, refactor it: rename, extract a function, or restructure. The only exceptions are legal headers and TODO markers tracked in `tasklist.md`.
+
+## Senior Engineer Mindset
+Write code as a highly experienced senior engineer would: right abstraction level, anticipate edge cases, design for change, name things precisely, keep functions small and focused, prefer clarity over brevity. Every file should pass a strict principal-engineer code review.
 
 ## Existing Codebase Rules
-When modifying an existing project, match: indentation, naming style, quote style, import ordering, comment style, abstraction patterns, error handling patterns. The generated code must look like the existing team wrote it.
+When modifying an existing project, match every existing convention: indentation, naming style, quote style, import ordering, abstraction patterns, error handling patterns, file structure. The generated code must be indistinguishable from what the existing team would write.
+
+## Testing
+Every feature must have tests. Write unit tests for individual logic and integration tests for module boundaries. Tests are written alongside implementation, not after. Test names describe behavior (e.g., `should_return_empty_when_no_items` not `test_method`). Cover edge cases: empty inputs, boundaries, errors, absent values.
+
+## Follow Up
+Do not assume. When requirements are ambiguous, when multiple valid approaches exist, or when a decision has trade-offs, stop and ask the user. Present options with trade-offs clearly. Check in at significant milestones before proceeding.
 RULE_EOF
 }
 

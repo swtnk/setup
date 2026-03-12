@@ -34,19 +34,19 @@
         }
 
         .container {
-            width: min(92%, 78rem);
+            width: min(92%, 52rem);
             margin: 0 auto;
-            padding: clamp(2.5rem, 5vw, 5rem) clamp(1.25rem, 3vw, 2.5rem);
+            padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1.25rem, 3vw, 2.5rem);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        .home-wrap {
+        .back-wrap {
             margin-bottom: clamp(1.1rem, 2.5vw, 1.6rem);
         }
 
-        .home-btn {
+        .back-btn {
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
@@ -60,38 +60,31 @@
             transition: border-color 0.15s, background 0.15s;
         }
 
-        .home-icon {
-            width: 1rem;
-            height: 1rem;
-            display: inline-block;
-            flex-shrink: 0;
-        }
-
-        .home-btn:hover {
+        .back-btn:hover {
             border-color: var(--purple-dim);
             background: #1a1f27;
         }
 
         .hero {
             text-align: center;
-            margin-bottom: clamp(2.25rem, 4vw, 3.5rem);
+            margin-bottom: clamp(2rem, 4vw, 3rem);
         }
 
         .hero-badge {
             display: inline-block;
-            padding: 0.3rem 0.9rem;
-            font-size: 0.8rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
             font-weight: 600;
             letter-spacing: 0.05em;
             text-transform: uppercase;
             color: var(--purple);
             border: 1px solid var(--purple-dim);
             border-radius: 9999px;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.5rem;
         }
 
         h1 {
-            font-size: clamp(2.2rem, 5vw, 3.4rem);
+            font-size: clamp(2.1rem, 5vw, 2.8rem);
             font-weight: 800;
             letter-spacing: -0.03em;
             margin-bottom: 0.75rem;
@@ -102,23 +95,23 @@
         }
 
         .tagline {
-            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-size: clamp(1rem, 2vw, 1.15rem);
             color: var(--text-muted);
-            max-width: 42rem;
+            max-width: 34rem;
             margin: 0 auto;
         }
 
         .install-block {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 0.9rem;
-            padding: clamp(1.25rem, 2vw, 1.8rem);
-            margin: clamp(2rem, 4vw, 3rem) 0;
+            border-radius: 0.75rem;
+            padding: clamp(1.2rem, 2vw, 1.5rem);
+            margin: clamp(2rem, 4vw, 2.5rem) 0;
             position: relative;
         }
 
         .install-label {
-            font-size: 0.82rem;
+            font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -128,25 +121,18 @@
 
         .install-cmd {
             font-family: var(--font-mono);
-            font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+            font-size: clamp(0.8rem, 1.2vw, 0.9rem);
             color: var(--green);
             background: var(--code-bg);
             padding: 1rem;
-            border-radius: 0.65rem;
+            border-radius: 0.5rem;
             overflow-x: auto;
             white-space: nowrap;
             cursor: pointer;
             transition: background 0.15s;
         }
 
-        .install-cmd-btn {
-            width: 100%;
-            border: none;
-            text-align: left;
-        }
-
         .install-cmd:hover { background: #1a1f27; }
-
         .install-cmd .prompt { color: var(--text-muted); user-select: none; }
         .install-cmd .url { color: var(--cyan); }
         .install-cmd .pipe { color: var(--text-muted); }
@@ -158,9 +144,9 @@
             background: var(--border);
             border: none;
             color: var(--text-muted);
-            padding: 0.45rem 0.8rem;
-            border-radius: 0.45rem;
-            font-size: 0.82rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.4rem;
+            font-size: 0.75rem;
             cursor: pointer;
             font-family: inherit;
             transition: all 0.15s;
@@ -179,16 +165,16 @@
             display: flex;
             align-items: baseline;
             gap: 0.75rem;
-            font-size: 0.92rem;
+            font-size: 0.85rem;
         }
 
         .flag code {
             font-family: var(--font-mono);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--yellow);
             background: var(--code-bg);
             padding: 0.15rem 0.5rem;
-            border-radius: 0.3rem;
+            border-radius: 0.25rem;
             white-space: nowrap;
         }
 
@@ -196,41 +182,41 @@
 
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
-            gap: 1.1rem;
-            margin: clamp(2.5rem, 4vw, 3.5rem) 0;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+            gap: 1rem;
+            margin: clamp(2rem, 4vw, 3rem) 0;
         }
 
         .feature {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 0.8rem;
-            padding: 1.35rem;
+            border-radius: 0.65rem;
+            padding: clamp(1rem, 2vw, 1.25rem);
         }
 
         .feature-icon {
-            font-size: 1.7rem;
-            margin-bottom: 0.5rem;
+            font-size: 1.4rem;
+            margin-bottom: 0.4rem;
         }
 
         .feature h3 {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.3rem;
         }
 
         .feature p {
-            font-size: 0.92rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             line-height: 1.5;
         }
 
         .section {
-            margin: clamp(2.5rem, 4vw, 3.5rem) 0;
+            margin: clamp(2rem, 4vw, 3rem) 0;
         }
 
         .section h2 {
-            font-size: clamp(1.3rem, 2vw, 1.6rem);
+            font-size: clamp(1.1rem, 2vw, 1.25rem);
             font-weight: 700;
             margin-bottom: 1rem;
             color: var(--text);
@@ -238,7 +224,7 @@
 
         .how-it-works {
             display: grid;
-            gap: 1.2rem;
+            gap: 1rem;
         }
 
         .step {
@@ -257,32 +243,31 @@
             background: var(--purple-dim);
             color: white;
             border-radius: 50%;
-            font-size: 0.88rem;
+            font-size: 0.8rem;
             font-weight: 700;
         }
 
         .step-content h4 {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             margin-bottom: 0.2rem;
         }
 
         .step-content p {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
         .tree {
             font-family: var(--font-mono);
-            font-size: clamp(0.9rem, 1.2vw, 1rem);
+            font-size: clamp(0.75rem, 1.1vw, 0.8rem);
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 0.8rem;
-            padding: 1.25rem;
-            line-height: 1.65;
+            border-radius: 0.65rem;
+            padding: clamp(1rem, 2vw, 1.25rem);
+            line-height: 1.7;
             color: var(--text-muted);
             overflow-x: auto;
-            white-space: pre;
         }
 
         .tree .dir { color: var(--cyan); }
@@ -295,12 +280,10 @@
             padding-top: 2rem;
             border-top: 1px solid var(--border);
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
-        footer p + p {
-            margin-top: 0.45rem;
-        }
+        footer p + p { margin-top: 0.35rem; }
 
         footer a {
             color: var(--purple);
@@ -309,45 +292,26 @@
 
         footer a:hover { text-decoration: underline; }
 
-        @media (min-width: 70rem) {
+        @media (min-width: 42rem) {
             .features {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .install-block,
-            .tree,
-            .feature {
-                border-color: #3a414a;
-            }
-        }
-
-        @media (max-width: 40rem) {
-            .flag {
-                flex-direction: column;
-                gap: 0.3rem;
-            }
-
-            .copy-btn {
-                position: static;
-                margin-bottom: 0.7rem;
-                float: right;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="home-wrap">
-            <a href="../../" class="home-btn" aria-label="Home">
-                <svg class="home-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M3 10.5L12 3L21 10.5V20C21 20.55 20.55 21 20 21H15V14H9V21H4C3.45 21 3 20.55 3 20V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <div class="back-wrap">
+            <a href="../.." class="back-btn" aria-label="Back to all tools">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span>Home</span>
+                <span>All Tools</span>
             </a>
         </div>
 
         <div class="hero">
-            <div class="hero-badge">v1.0.0</div>
+            <div class="hero-badge">v1.1.0</div>
             <h1>Claude Code Setup</h1>
             <p class="tagline">One command to set up architecture-first coding standards for Claude Code in VS Code.</p>
         </div>
@@ -355,9 +319,9 @@
         <div class="install-block">
             <div class="install-label">Install</div>
             <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
-            <button type="button" class="install-cmd install-cmd-btn" onclick="copyCmd(this.parentElement.querySelector('.copy-btn'))">
+            <div class="install-cmd" onclick="copyCmd(this.parentElement.querySelector('.copy-btn'))">
                 <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash
-            </button>
+            </div>
             <div class="flags">
                 <div class="flag"><code>--copilot</code> <span>Also set up GitHub Copilot instructions</span></div>
                 <div class="flag"><code>--global</code> <span>Install to ~/.claude/ for all projects</span></div>
@@ -373,9 +337,39 @@
                 <p>Claude analyzes your entire codebase before writing a single line. No more context loss.</p>
             </div>
             <div class="feature">
+                <div class="feature-icon">📐</div>
+                <h3>SOLID Always</h3>
+                <p>Every generated file follows SOLID principles. No exceptions.</p>
+            </div>
+            <div class="feature">
                 <div class="feature-icon">🔒</div>
                 <h3>Immutable by Default</h3>
                 <p>All variables const/final/readonly unless mutation is explicitly justified.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🚫</div>
+                <h3>Zero Hardcoded Values</h3>
+                <p>All constants in centralized config files. Clean, maintainable code.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💬</div>
+                <h3>Self-Explanatory Code</h3>
+                <p>No comments needed. Descriptive names, clean structure, code that reads like prose.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>Senior Engineer Level</h3>
+                <p>Right abstractions, edge case coverage, precise naming. Passes principal-level review.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🧩</div>
+                <h3>Task Decomposition</h3>
+                <p>Big problems broken into small tasks with a plan. Tracked in .claude/context/.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🧪</div>
+                <h3>Tests Built In</h3>
+                <p>Unit and integration tests written alongside implementation, not as an afterthought.</p>
             </div>
             <div class="feature">
                 <div class="feature-icon">🧠</div>
@@ -388,20 +382,20 @@
                 <p>Detects Python, Java, Rust, TypeScript, Go, C/C++ and installs matching rules.</p>
             </div>
             <div class="feature">
-                <div class="feature-icon">📐</div>
-                <h3>SOLID Always</h3>
-                <p>Every generated file follows SOLID principles. No exceptions.</p>
+                <div class="feature-icon">🤝</div>
+                <h3>Follows Up</h3>
+                <p>Asks when ambiguous, presents trade-offs, checks in at milestones. Never assumes.</p>
             </div>
             <div class="feature">
-                <div class="feature-icon">🚫</div>
-                <h3>Zero Hardcoded Values</h3>
-                <p>All constants in centralized config files. Clean, maintainable code.</p>
+                <div class="feature-icon">🪞</div>
+                <h3>Matches Your Style</h3>
+                <p>For existing codebases, mirrors every convention. Generated code is indistinguishable.</p>
             </div>
         </div>
 
         <div class="section">
             <h2>What it creates</h2>
-            <pre class="tree">
+            <div class="tree">
 <span class="dir">your-project/</span>
 ├── <span class="file">CLAUDE.md</span>                  <span class="comment"># Main instructions (Claude reads this)</span>
 ├── <span class="dir">.claude/</span>
@@ -410,11 +404,13 @@
 │   │   ├── <span class="file">python.md</span>          <span class="comment"># Type hints, protocols, typing</span>
 │   │   ├── <span class="file">java.md</span>            <span class="comment"># Lombok, Optional, null-safety</span>
 │   │   ├── <span class="file">rust.md</span>            <span class="comment"># Ownership, Result types</span>
-│   │   └── <span class="file">typescript.md</span>      <span class="comment"># Strict mode, readonly</span>
+│   │   ├── <span class="file">typescript.md</span>      <span class="comment"># Strict mode, readonly</span>
+│   │   ├── <span class="file">go.md</span>              <span class="comment"># Error handling, composition</span>
+│   │   └── <span class="file">c_cpp.md</span>           <span class="comment"># Smart pointers, RAII, const</span>
 │   └── <span class="dir">context/</span>               <span class="comment"># Project memory (auto-populated)</span>
 │       └── <span class="file">README.md</span>
 └── <span class="file">.gitignore</span>                 <span class="comment"># Updated with .claude/context/</span>
-            </pre>
+            </div>
         </div>
 
         <div class="section">
@@ -445,7 +441,7 @@
                     <div class="step-num">4</div>
                     <div class="step-content">
                         <h4>Code with confidence</h4>
-                        <p>Every generated file follows SOLID, uses immutability, avoids hardcoded values, and matches your existing patterns.</p>
+                        <p>Every generated file follows all 10 principles, matches your existing patterns, and includes tests.</p>
                     </div>
                 </div>
             </div>
@@ -459,11 +455,11 @@
 
     <script>
         function copyCmd(btn) {
-            const cmd = "curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash";
-            navigator.clipboard.writeText(cmd).then(() => {
+            var cmd = "curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash";
+            navigator.clipboard.writeText(cmd).then(function() {
                 btn.textContent = "Copied!";
                 btn.classList.add("copied");
-                setTimeout(() => {
+                setTimeout(function() {
                     btn.textContent = "Copy";
                     btn.classList.remove("copied");
                 }, 2000);

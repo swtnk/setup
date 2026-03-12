@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Skills — swetanksubham.com</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --purple: #b266ff;
+            --purple-dim: #7c3aed;
+            --green: #50c878;
+            --cyan: #00ced1;
+            --yellow: #ffc857;
+            --code-bg: #0d1117;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: min(92%, 52rem);
+            margin: 0 auto;
+            padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1.25rem, 3vw, 2.5rem);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .back-wrap {
+            margin-bottom: clamp(1.1rem, 2.5vw, 1.6rem);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 0.45rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .back-btn:hover {
+            border-color: var(--purple-dim);
+            background: #1a1f27;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: clamp(2rem, 4vw, 3rem);
+        }
+
+        h1 {
+            font-size: clamp(2.1rem, 5vw, 2.8rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, var(--purple), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            color: var(--text-muted);
+            max-width: 36rem;
+            margin: 0 auto;
+        }
+
+        .paths {
+            display: grid;
+            gap: 1.5rem;
+            margin: clamp(2rem, 4vw, 3rem) 0;
+        }
+
+        .path-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: clamp(1.4rem, 2.5vw, 1.8rem);
+        }
+
+        .path-card h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .path-card .for {
+            font-size: 0.8rem;
+            color: var(--cyan);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.75rem;
+        }
+
+        .path-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .path-card ol {
+            padding-left: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .path-card li {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+        }
+
+        .path-card li strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .cmd-block {
+            font-family: var(--font-mono);
+            font-size: clamp(0.8rem, 1.2vw, 0.88rem);
+            color: var(--green);
+            background: var(--code-bg);
+            padding: 0.8rem 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .cmd-block .prompt { color: var(--text-muted); user-select: none; }
+        .cmd-block .url { color: var(--cyan); }
+        .cmd-block .pipe { color: var(--text-muted); }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.1rem;
+            border-radius: 0.45rem;
+            border: 1px solid var(--purple-dim);
+            background: var(--purple-dim);
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: background 0.15s, transform 0.1s;
+        }
+
+        .download-btn:hover {
+            background: var(--purple);
+            transform: translateY(-1px);
+        }
+
+        .secondary-link {
+            display: inline-block;
+            margin-left: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .secondary-link:hover { color: var(--purple); }
+
+        .divider {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+
+        .skill-list {
+            margin: clamp(2rem, 4vw, 3rem) 0;
+        }
+
+        .skill-list h2 {
+            font-size: clamp(1.1rem, 2vw, 1.25rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .skill-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.65rem;
+            padding: clamp(1rem, 2vw, 1.25rem);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .skill-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .skill-info p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .skill-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .small-btn {
+            padding: 0.35rem 0.75rem;
+            border-radius: 0.35rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .small-btn:hover {
+            border-color: var(--purple-dim);
+            color: var(--text);
+        }
+
+        .small-btn.primary {
+            border-color: var(--purple-dim);
+            background: var(--purple-dim);
+            color: white;
+        }
+
+        .small-btn.primary:hover {
+            background: var(--purple);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: auto;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer p + p { margin-top: 0.35rem; }
+
+        footer a {
+            color: var(--purple);
+            text-decoration: none;
+        }
+
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-wrap">
+            <a href="../.." class="back-btn" aria-label="Back to all tools">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>All Tools</span>
+            </a>
+        </div>
+
+        <div class="hero">
+            <h1>Claude Skills</h1>
+            <p class="tagline">Custom skills for Claude. Choose the right setup for where you use Claude.</p>
+        </div>
+
+        <div class="paths">
+            <div class="path-card">
+                <div class="for">VS Code (Claude Code / Copilot)</div>
+                <h2>Use the installer</h2>
+                <p>The install script creates <code>CLAUDE.md</code> and <code>.claude/rules/</code> in your project. Claude Code reads these automatically. No manual setup needed.</p>
+                <div class="cmd-block">
+                    <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash
+                </div>
+            </div>
+
+            <div class="divider">or</div>
+
+            <div class="path-card">
+                <div class="for">Claude.ai</div>
+                <h2>Install the .skill file</h2>
+                <p>Download the <code>.skill</code> file and install it in Claude.ai to get the same coding standards in the web/app interface.</p>
+                <ol>
+                    <li>Download the <strong>.skill</strong> file below</li>
+                    <li>Open <a href="https://claude.ai" style="color: var(--purple);">claude.ai</a></li>
+                    <li>Go to <strong>Settings</strong> (bottom-left) &rarr; <strong>Skills</strong></li>
+                    <li>Click <strong>Add Skill</strong> and upload the file</li>
+                </ol>
+                <a href="./project-architect.skill" class="download-btn" download>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    project-architect.skill
+                </a>
+                <a href="./SKILL.md" class="secondary-link">View raw SKILL.md &rarr;</a>
+            </div>
+        </div>
+
+        <div class="skill-list">
+            <h2>Available Skills</h2>
+            <div class="skill-item">
+                <div class="skill-info">
+                    <h3>Project Architect</h3>
+                    <p>Architecture-first code generation with 10 coding principles. SOLID, immutability, task decomposition, testing, project memory.</p>
+                </div>
+                <div class="skill-actions">
+                    <a href="./SKILL.md" class="small-btn">View</a>
+                    <a href="./project-architect.skill" class="small-btn primary" download>Download</a>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="https://swetanksubham.com">swetanksubham.com</a> · <a href="https://github.com/swtnk/setup">Source on GitHub</a></p>
+            <p>Built by <a href="https://swetanksubham.com">Swetank Subham</a></p>
+        </footer>
+    </div>
+</body>
+</html>
