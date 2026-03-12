@@ -174,10 +174,50 @@
             margin-top: 1rem;
         }
 
+        .examples {
+            margin-top: 1rem;
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .examples-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .example-item {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .example-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .example-cmd {
+            font-family: var(--font-mono);
+            font-size: clamp(0.88rem, 1.15vw, 0.98rem);
+            color: var(--green);
+            background: var(--code-bg);
+            padding: 0.75rem 0.9rem;
+            border-radius: 0.55rem;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .example-cmd .prompt { color: var(--text-muted); user-select: none; }
+        .example-cmd .url { color: var(--cyan); }
+        .example-cmd .pipe { color: var(--text-muted); }
+
         .flag {
-            display: flex;
-            align-items: baseline;
-            gap: 0.75rem;
+            display: grid;
+            grid-template-columns: minmax(8.75rem, max-content) 1fr;
+            align-items: center;
+            column-gap: 0.9rem;
             font-size: 0.92rem;
         }
 
@@ -189,6 +229,7 @@
             padding: 0.15rem 0.5rem;
             border-radius: 0.3rem;
             white-space: nowrap;
+            justify-self: start;
         }
 
         .flag span { color: var(--text-muted); }
@@ -328,8 +369,8 @@
 
         @media (max-width: 40rem) {
             .flag {
-                flex-direction: column;
-                gap: 0.3rem;
+                grid-template-columns: 1fr;
+                row-gap: 0.3rem;
             }
 
             .copy-btn {
@@ -368,6 +409,31 @@
                 <div class="flag"><code>--global</code> <span>Install to ~/.claude/ for all projects</span></div>
                 <div class="flag"><code>--force</code> <span>Overwrite existing files</span></div>
                 <div class="flag"><code>--no-detect</code> <span>Skip language detection, install all rules</span></div>
+            </div>
+
+            <div class="examples">
+                <div class="examples-title">Examples</div>
+
+                <div class="example-item">
+                    <div class="example-label">With Copilot support</div>
+                    <div class="example-cmd">
+                        <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash -s -- --copilot
+                    </div>
+                </div>
+
+                <div class="example-item">
+                    <div class="example-label">Global install</div>
+                    <div class="example-cmd">
+                        <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash -s -- --global
+                    </div>
+                </div>
+
+                <div class="example-item">
+                    <div class="example-label">Force + all languages</div>
+                    <div class="example-cmd">
+                        <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash -s -- --force --no-detect
+                    </div>
+                </div>
             </div>
         </div>
 

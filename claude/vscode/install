@@ -583,9 +583,42 @@ generate_copilot_instructions() {
 }
 
 convert_rule_to_copilot() {
-    # Convert paths: format to applyTo: format for Copilot
+    # Convert paths: (array) to applyTo: (single string) for Copilot
     local content="$1"
-    printf '%s\n' "${content}" | sed 's/^paths:$/applyTo:/' | sed 's/^  - "\(.*\)"$/  - "\1"/'
+    local extensions=""
+
+    # Extract file extensions from paths like **/*.py, **/*.ts
+    while IFS= read -r line; do
+        local ext
+        ext="$(printf '%s' "${line}" | sed -n 's/.*- "\*\*\/\*\.\(.*\)"/\1/p')"
+        if [[ -n "${ext}" ]]; then
+            if [[ -z "${extensions}" ]]; then
+                extensions="${ext}"
+            else
+                extensions="${extensions},${ext}"
+            fi
+        fi
+    done <<< "${content}"
+
+    # Build applyTo value
+    local apply_to="**"
+    if [[ -n "${extensions}" ]]; then
+        if [[ "${extensions}" == *","* ]]; then
+            apply_to="**/*.{${extensions}}"
+        else
+            apply_to="**/*.${extensions}"
+        fi
+    fi
+
+    # Strip old frontmatter, output new one + body
+    local body
+    body="$(printf '%s\n' "${content}" | awk '
+        BEGIN { fence=0 }
+        /^---$/ { fence++; next }
+        fence >= 2 { print }
+    ')"
+
+    printf -- '---\napplyTo: "%s"\n---\n%s\n' "${apply_to}" "${body}"
 }
 
 # ── Main Install Logic ────────────────────────────────────────────────────────
