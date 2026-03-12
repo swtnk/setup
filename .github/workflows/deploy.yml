@@ -15,7 +15,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shellcheck
+        run: shellcheck claude/vscode/install claude/vscode/test.sh
+
+      - name: Syntax check installer
+        run: bash -n claude/vscode/install
+
+      - name: Run test in sandbox
+        run: bash claude/vscode/test.sh --force --no-detect
+
+      - name: Test --copilot flag
+        run: bash claude/vscode/test.sh --force --no-detect --copilot
+
+      - name: Test --global flag
+        run: bash claude/vscode/test.sh --force --no-detect --global
+
+      - name: Test --global --copilot (copilot skipped)
+        run: bash claude/vscode/test.sh --force --no-detect --global --copilot
+
   deploy:
+    needs: validate
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -23,6 +48,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Generate installer checksum
+        run: |
+          cd claude/vscode
+          sha256sum install > install.sha256
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

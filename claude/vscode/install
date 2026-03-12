@@ -13,14 +13,17 @@
 #   --global      Install to ~/.claude/ (global, applies to all projects)
 #   --force       Overwrite existing files without prompting
 #   --no-detect   Skip language auto-detection, install all language rules
+#   --verify      Download and verify checksum, don't install
 #   --help        Show help
 # ──────────────────────────────────────────────────────────────────────────────
+
+# shellcheck disable=SC2059  # Variables in printf format strings are intentional (ANSI color codes)
 
 set -euo pipefail
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-readonly VERSION="1.1.0"
+readonly VERSION="2.0.1"
 readonly INSTALLER_URL="https://swetanksubham.com/setup/claude/vscode"
 
 # ── Colors & Formatting ──────────────────────────────────────────────────────
@@ -30,7 +33,6 @@ if [[ -t 1 ]] && [[ "${NO_COLOR:-}" != "1" ]]; then
     readonly DIM="\033[2m"
     readonly RESET="\033[0m"
     readonly GREEN="\033[38;2;80;200;120m"
-    readonly BLUE="\033[38;2;100;149;237m"
     readonly YELLOW="\033[38;2;255;200;87m"
     readonly RED="\033[38;2;255;99;71m"
     readonly CYAN="\033[38;2;0;206;209m"
@@ -43,7 +45,7 @@ if [[ -t 1 ]] && [[ "${NO_COLOR:-}" != "1" ]]; then
     readonly DOT="${GRAY}·${RESET}"
 else
     readonly BOLD="" DIM="" RESET=""
-    readonly GREEN="" BLUE="" YELLOW="" RED="" CYAN="" PURPLE="" WHITE="" GRAY=""
+    readonly GREEN="" YELLOW="" RED="" CYAN="" PURPLE="" WHITE="" GRAY=""
     readonly CHECK="✓" CROSS="✗" ARROW="→" DOT="·"
 fi
 
@@ -53,6 +55,7 @@ SETUP_COPILOT=false
 GLOBAL_INSTALL=false
 FORCE_OVERWRITE=false
 AUTO_DETECT=true
+VERIFY_ONLY=false
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -201,7 +204,11 @@ interactive_select_options() {
             no_detect_box="$(checkbox false)"
         fi
 
-        printf "    1) %b --copilot\n" "${copilot_box}"
+        if [[ "${GLOBAL_INSTALL}" == true ]] && [[ "${SETUP_COPILOT}" == true ]]; then
+            printf "    1) %b --copilot ${DIM}(skipped with --global)${RESET}\n" "${copilot_box}"
+        else
+            printf "    1) %b --copilot\n" "${copilot_box}"
+        fi
         printf "    2) %b --global\n" "${global_box}"
         printf "    3) %b --force\n" "${force_box}"
         printf "    4) %b --no-detect\n" "${no_detect_box}"
@@ -266,10 +273,11 @@ run_with_spinner() {
         return
     fi
 
+    # shellcheck disable=SC1003
     local frames='|/-\'
     local frame_index=0
     local output_file
-    output_file="$(mktemp 2>/dev/null || printf "/tmp/claude-install-%s.out" "$$")"
+    output_file="$(mktemp)" || { error "Failed to create temp file"; return 1; }
     local pid
 
     "$@" >"${output_file}" 2>&1 &
@@ -294,7 +302,55 @@ run_with_spinner() {
 
     cat "${output_file}"
     rm -f "${output_file}"
-    return "${status}"
+    if [[ "${status}" -ne 0 ]]; then
+        exit "${status}"
+    fi
+    return 0
+}
+
+verify_integrity() {
+    local url="${INSTALLER_URL}/install"
+    local checksum_url="${INSTALLER_URL}/install.sha256"
+
+    step "Verifying installer integrity"
+
+    local sha_tool=""
+    if command -v sha256sum > /dev/null 2>&1; then
+        sha_tool="sha256sum"
+    elif command -v shasum > /dev/null 2>&1; then
+        sha_tool="shasum -a 256"
+    else
+        error "No SHA-256 tool found (need sha256sum or shasum)"
+        exit 1
+    fi
+
+    local tmpdir
+    tmpdir="$(mktemp -d)" || { error "Failed to create temp directory"; exit 1; }
+    trap 'rm -rf "${tmpdir}"' EXIT
+
+    if ! curl -fsSL "${url}" -o "${tmpdir}/install" 2>/dev/null; then
+        error "Failed to download installer from ${url}"
+        exit 1
+    fi
+
+    if ! curl -fsSL "${checksum_url}" -o "${tmpdir}/install.sha256" 2>/dev/null; then
+        error "No checksum file found at ${checksum_url}"
+        info "Generate one with: sha256sum install > install.sha256"
+        exit 1
+    fi
+
+    local expected actual
+    expected="$(awk '{print $1}' "${tmpdir}/install.sha256")"
+    actual="$(${sha_tool} "${tmpdir}/install" | awk '{print $1}')"
+
+    if [[ "${expected}" == "${actual}" ]]; then
+        success "Integrity verified ${DIM}(SHA-256: ${actual:0:16}...)${RESET}"
+    else
+        error "Checksum mismatch!"
+        printf "    Expected: %s\n" "${expected}" >&2
+        printf "    Got:      %s\n" "${actual}" >&2
+        exit 1
+    fi
 }
 
 install_rules() {
@@ -324,6 +380,8 @@ show_help() {
     printf "    --global      Install to ~/.claude/ (applies to all projects)\n"
     printf "    --force       Overwrite existing files without prompting\n"
     printf "    --no-detect   Skip language detection, install all rules\n"
+    printf "    --verify      Verify installer checksum (download-and-check)\n"
+    printf "    --version     Show version number\n"
     printf "    --help        Show this help message\n\n"
     exit 0
 }
@@ -356,7 +414,11 @@ append_line() {
             info "Already in ${DIM}${label}${RESET}: ${GRAY}${line}${RESET}"
             return 0
         fi
-        printf '\n%s\n' "${line}" >> "${filepath}"
+        if [[ -s "${filepath}" ]] && [[ "$(tail -c 1 "${filepath}" | xxd -p)" != "0a" ]]; then
+            printf '\n%s\n' "${line}" >> "${filepath}"
+        else
+            printf '%s\n' "${line}" >> "${filepath}"
+        fi
         success "Updated: ${DIM}${label}${RESET} ${GRAY}+ ${line}${RESET}"
     else
         printf '%s\n' "${line}" > "${filepath}"
@@ -368,11 +430,18 @@ append_line() {
 
 has_files() {
     # Portable alternative to compgen -G / globstar
-    # Uses find with early exit for performance
+    # Uses find with early exit for performance, excludes common non-source directories
     local dir="$1"
     shift
     for pattern in "$@"; do
-        if find "${dir}" -maxdepth 4 -name "${pattern}" -print -quit 2>/dev/null | grep -q .; then
+        if find "${dir}" -maxdepth 6 \
+            -not -path '*/.git/*' \
+            -not -path '*/node_modules/*' \
+            -not -path '*/vendor/*' \
+            -not -path '*/build/*' \
+            -not -path '*/dist/*' \
+            -not -path '*/.cache/*' \
+            -name "${pattern}" -print -quit 2>/dev/null | grep -q .; then
             return 0
         fi
     done
@@ -422,7 +491,7 @@ detect_languages() {
 
     # C/C++
     if [[ -f "${dir}/CMakeLists.txt" ]] || \
-       [[ -f "${dir}/Makefile" ]] || \
+       ( [[ -f "${dir}/Makefile" ]] && has_files "${dir}" "*.c" "*.cpp" "*.h" "*.hpp" ) || \
        has_files "${dir}" "*.c" "*.cpp" "*.h" "*.hpp"; then
         result="${result}c_cpp "
     fi
@@ -437,196 +506,42 @@ detect_languages() {
 
 generate_claude_md() {
 cat << 'CLAUDE_MD_EOF'
-# Project Architect Instructions
+# Project Architect
 
-You are an architecture-first code generator. Before writing a single line of code, you must fully understand the project. This file defines your coding principles, workflow, and conventions.
+Architecture-first code generation. Understand the project fully before writing any code. Coding standards are defined in `.claude/rules/` — this file defines workflow and project memory.
 
----
+## Before Any Change
 
-## Step 0: Deep Dive First (Mandatory, Every Time)
+**Existing project:** scan the full directory tree, read entry points/configs/build files/env files/CI configs, trace component architecture and data flow, catalog every coding convention (naming, imports, quotes, indentation, patterns), map all constants/config files, identify the full tech stack. Write findings to `.claude/context/`. Match every existing convention exactly — generated code must be indistinguishable from the team's own.
 
-**Before making any changes, build a complete understanding of the project.**
+**New project:** understand requirements fully (ask if ambiguous), design architecture and module boundaries, plan constants/config structure, choose dependencies with justification. Populate `.claude/context/` before generating code.
 
-### For Existing Projects
+**Resuming:** read all `.claude/context/` files first. Check `progress.md` and `tasklist.md` for where things left off. If the user mentions external changes, re-scan affected areas and update context.
 
-Walk through the entire codebase systematically before making any changes:
+## Project Memory (`.claude/context/`)
 
-1. Scan the full directory tree: understand every directory's purpose, module organization, what lives where
-2. Read all key files: entry points, configs, build configs, constants/config files, env files, CI configs, Dockerfiles, test setup, dependency manifests
-3. Trace the architecture: how components connect, data flow, dependency injection patterns, error handling, logging, validation, routing
-4. Catalog coding conventions: naming style, import ordering, comment style, indentation, quote style, file naming patterns, module structure, abstraction patterns
-5. Map constants and config: find all existing constants files, env files, config objects. Understand how configuration flows through the system.
-6. Identify the full tech stack: frameworks, libraries, build tools, test frameworks, linters, formatters, and versions
-7. Write everything to `.claude/context/` (see Project Memory section below)
-8. **Match every convention exactly.** Generated code must look like the existing team wrote it.
-
-### For New Projects
-
-1. Understand requirements thoroughly. Ask clarifying questions if anything is ambiguous.
-2. Design the architecture: components, interfaces, data flow, module boundaries
-3. Decide conventions based on language best practices and the principles below
-4. Plan constants/config structure
-5. Choose dependencies with justification
-6. Populate `.claude/context/` with all findings before generating any project code
-
-### Resuming Work
-
-1. Read every file in `.claude/context/` first. Do not skip this.
-2. Check `progress.md` and `tasklist.md` to understand where things left off.
-3. If the user mentions changes made outside these conversations, re-scan affected areas and update context files.
-
----
-
-## Universal Coding Principles (Non-Negotiable)
-
-### 1. SOLID Principles Always
-Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion. These are the baseline, not aspirational.
-
-### 2. Immutability by Default
-Every variable, field, parameter, and data structure is immutable unless mutation is explicitly required and justified.
-- Rust: default ownership, prefer `&` borrows, use `mut` only when needed
-- Python: prefer `tuple` over `list` for fixed data, use `Final` from typing, frozen dataclasses
-- Java: `final` on every variable/field/parameter, `@Value` classes via Lombok
-- TypeScript: `const`, `readonly`, `Readonly<T>`, `as const`
-- Go: minimize pointer usage when value semantics suffice
-- Other languages: apply the closest equivalent
-
-### 3. Zero Hardcoded Values
-All constants, magic numbers, configuration values, URLs, timeouts, feature flags go into a centralized constants or config file. Every other file references these through imports. Group and document clearly.
-
-### 4. No Raw Nulls
-Use `Optional`/`Option`/`Result` types everywhere. Never return or accept null/None/nil where an Optional type exists.
-
-### 5. Prefer Standard Library Utilities
-If the language provides a utility, use it. Do not reimplement `Objects.isNull`, `Comparator.comparing`, `itertools`, `std::cmp`, or anything the platform already offers.
-
-### 6. Self-Explanatory Code — No Comments
-Code must read like well-written prose. Use descriptive variable names, function names, class names, and module structure to convey intent. Do not add inline comments, block comments, or documentation comments inside code files. If you feel the need to write a comment, that is a signal to rename, restructure, or extract a function instead. The only exceptions are: (a) legal/license headers if required by the project, and (b) TODO markers for genuinely unfinished work tracked in `tasklist.md`.
-
-### 7. Code Like a Senior Engineer
-Write code as a highly experienced senior software engineer would. This means: choosing the right abstraction level (not too clever, not too naive), anticipating edge cases, designing for change, naming things precisely, keeping functions small and focused, avoiding premature optimization but not ignoring performance, and preferring clarity over brevity. Every file you produce should pass a strict code review from a principal engineer without pushback.
-
-### 8. Break Down Before Building
-Never start implementing a large requirement as a monolith. Decompose every problem into small, well-defined, independently testable tasks. Write these into `.claude/context/tasklist.md` and `.claude/context/plan.md` before writing any implementation code. Follow the plan throughout, checking off tasks as they complete. If the scope changes mid-work, update the plan first, then continue.
-
-### 9. Testing Is Not Optional
-Every feature, module, and significant function must be covered by tests. Write unit tests for individual logic and integration tests for module boundaries and API endpoints. Tests are written alongside implementation, not after. Use the ecosystem's standard test framework. Test names describe behavior, not implementation (e.g., `should_return_empty_when_no_items_found` not `test_get_items`).
-
-### 10. Follow Up With the User
-Do not assume. When requirements are ambiguous, when there are multiple valid approaches, when a decision has significant trade-offs, or when something seems off, stop and ask the user. Present the options clearly, explain the trade-offs, and let them decide. It is always better to ask one clarifying question than to build the wrong thing. After completing significant milestones, check in with the user before proceeding to the next phase.
-
----
-
-## Language-Specific Standards
-
-### Python
-- Type hints on everything: all function parameters, return types, variable annotations
-- `Protocol` classes for structural subtyping
-- Full `typing` module usage: `Optional`, `Final`, `TypeAlias`, `TypeVar`, `Generic`, `Literal`, `TypedDict`, `Annotated`, `overload`
-- Frozen dataclasses or `NamedTuple` for data containers
-- `from __future__ import annotations`
-
-### Java
-- Null-safety is paramount: `java.util.Optional` for absent values, `Objects.isNull()`, `Objects.nonNull()`, `Objects.requireNonNull()`
-- Lombok annotations:
-  - `@Value` for immutable data classes (preferred over `@Data`)
-  - `@Builder` on classes and records
-  - `@NonNull` on parameters and fields
-  - `@Getter` + `@RequiredArgsConstructor` on enums
-  - `@Slf4j` for logging
-- Records with `@Builder` for simple data carriers
-- Standard utilities: `Comparator.comparing()`, Stream API, `Collections.unmodifiable*()`, `Map.of()`, `List.of()`
-
-### Rust
-- Lean into ownership. Prefer borrowing over cloning.
-- `Result<T, E>` for fallible operations with meaningful error types (`thiserror` or `anyhow`)
-- Derive `Clone`, `Debug`, `PartialEq` as appropriate. `#[non_exhaustive]` on public enums/structs.
-- `impl Trait` in argument position for flexibility
-- Rust 2024 edition idioms
-
-### TypeScript
-- Strict mode always (`"strict": true`)
-- `const` by default, `let` only when reassignment is unavoidable, never `var`
-- `readonly` on object properties, `Readonly<T>`, `ReadonlyArray<T>`
-- Explicit return types on public functions
-- Discriminated unions over loose string types
-
-### Go
-- Minimize pointer usage when value semantics suffice
-- Return errors explicitly, never ignore them
-- Use `errors.Is()` and `errors.As()` for error checking
-- Prefer composition over inheritance via struct embedding
-
-### Other Languages
-Apply the equivalent immutability, null-safety, and type-safety idioms.
-
----
-
-## Project Memory: `.claude/context/`
-
-Every project gets a `.claude/context/` directory at the project root. This is the persistent lookup reference. Build it once, keep it updated, always consult it.
-
-### Context Files
+Maintain these files, updated after every significant change. Read before writing. Never delete — append and update.
 
 | File | Purpose |
 |---|---|
-| `architecture.md` | System design, component relationships, data flow, design decisions and rationale |
-| `conventions.md` | Coding patterns, naming conventions, file organization, import ordering, error handling patterns |
-| `progress.md` | What's complete, in progress, and pending |
-| `constants-map.md` | Where config/constants files live, what they contain, how to add new ones |
-| `dependencies.md` | Key libraries, why chosen, version constraints, compatibility notes |
-| `tasklist.md` | All planned work items, ordered by priority/dependency, with checkboxes |
-| `plan.md` | Project plan: phases, milestones, delivery strategy, risk areas, open questions |
+| `architecture.md` | System design, components, data flow, design decisions |
+| `conventions.md` | Coding patterns, naming, file organization, imports |
+| `progress.md` | What's complete, in progress, pending |
+| `constants-map.md` | Config/constants locations and contents |
+| `dependencies.md` | Libraries, rationale, version constraints |
+| `tasklist.md` | Work items as checkboxes, ordered by dependency |
+| `plan.md` | Phases, milestones, delivery strategy, open questions |
 
-### Rules
-- Add `.claude/context/` to `.gitignore` and `.dockerignore`
-- Read before writing: always consult context files before starting any work
-- Never delete information: append and update. Document reversals with reasons.
+## Workflow
 
----
+1. Decompose non-trivial work into tasks in `tasklist.md` and write the plan in `plan.md` before coding
+2. Follow the plan step by step, updating `progress.md` as tasks complete
+3. Write tests alongside implementation using the ecosystem's standard framework
+4. Check in with the user at milestones and when decisions have trade-offs
 
-## Adaptive Workflow
+## Quality Gate
 
-### Scale Assessment
-- **Small (< 10 files)**: scaffold in one or two passes
-- **Medium (10-30 files)**: break into logical modules, generate module by module
-- **Large (30+ files)**: full phased approach with planning
-
-### Task Decomposition
-For any non-trivial request, before writing code:
-1. Break the requirement into small, concrete tasks in `.claude/context/tasklist.md`
-2. Order tasks by dependency (what must exist before what)
-3. Write the implementation plan in `.claude/context/plan.md`
-4. Follow the plan step by step, updating progress as you go
-5. Check in with the user at phase boundaries or when decisions arise
-
-### Testing Strategy
-Testing is a first-class part of every task, not an afterthought:
-- Write tests alongside implementation, not after
-- Unit tests for individual functions, methods, and business logic
-- Integration tests for module boundaries, API endpoints, and data flows
-- Mirror the source directory structure in the test directory
-- Use descriptive test names that explain the expected behavior
-- Include edge cases: empty inputs, boundary values, error conditions, null/absent values
-- Use the ecosystem's standard test framework (pytest, JUnit 5, cargo test, Jest/Vitest, Go testing, etc.)
-
-### Always Include When Relevant
-- Database schema and migrations using the ecosystem's standard tool
-- Docker: multi-stage builds, non-root user, docker-compose for local dev
-- Constants/config documented in `constants-map.md`
-
-### Quality Checklist
-Before presenting code:
-- No hardcoded values outside constants/config files
-- All variables/fields immutable unless mutation is justified
-- Optional/Result types used instead of raw nulls
-- Standard library utilities used where available
-- SOLID principles followed
-- Code is self-explanatory with no inline comments
-- Language-specific standards met
-- `.claude/context/` created/updated with plan and tasklist
-- Unit and integration tests included
-- Existing codebase patterns matched exactly (if applicable)
+Before presenting code verify: no hardcoded values, immutable by default, optional types over nulls, standard library used, SOLID followed, self-explanatory naming (no comments), language standards from `.claude/rules/` met, context files updated, tests included, existing patterns matched.
 CLAUDE_MD_EOF
 }
 
@@ -637,45 +552,28 @@ paths:
   - "**"
 ---
 
-# General Coding Standards
+# Universal Coding Standards
 
-## Deep Dive First
-Before making any changes to this project, read all files in `.claude/context/` if they exist. If they don't exist, perform a full codebase analysis and create them before writing any code. This applies to both new and existing projects.
-
-## Project Memory
-Maintain `.claude/context/` with these files, updated after every significant change:
-- `architecture.md` - system design, component relationships, data flow, design decisions
-- `conventions.md` - coding patterns discovered or decided, with file references
-- `progress.md` - what's complete, in progress, pending
-- `constants-map.md` - where config/constants live, what they contain
-- `dependencies.md` - key libraries, why chosen, versions
-- `tasklist.md` - planned work items broken down into small tasks, with checkboxes
-- `plan.md` - project plan, phases, milestones, implementation order
-
-## Task Decomposition
-Never start a large requirement as a monolith. Break every problem into small, testable tasks. Write them into `tasklist.md` and `plan.md` before coding. Follow the plan throughout, updating as tasks complete. If scope changes, update the plan first.
-
-## Universal Principles
-- SOLID principles: every file has one clear responsibility
-- Immutability by default: all variables/fields immutable unless mutation is justified
-- Zero hardcoded values: all constants, magic numbers, URLs, timeouts, and config values go in centralized constants/config files. Reference them everywhere else.
-- No raw nulls: use Optional/Result/Option types
-- Prefer standard library utilities over custom reimplementations
-
-## Self-Explanatory Code
-Code must speak for itself. Use descriptive names for variables, functions, classes, and modules. Do NOT write inline comments, block comments, or documentation comments inside code files. If code needs a comment to be understood, refactor it: rename, extract a function, or restructure. The only exceptions are legal headers and TODO markers tracked in `tasklist.md`.
-
-## Senior Engineer Mindset
-Write code as a highly experienced senior engineer would: right abstraction level, anticipate edge cases, design for change, name things precisely, keep functions small and focused, prefer clarity over brevity. Every file should pass a strict principal-engineer code review.
-
-## Existing Codebase Rules
-When modifying an existing project, match every existing convention: indentation, naming style, quote style, import ordering, abstraction patterns, error handling patterns, file structure. The generated code must be indistinguishable from what the existing team would write.
+## Principles
+- SOLID: single responsibility per file/class, open/closed, Liskov substitution, interface segregation, dependency inversion
+- Immutable by default: `const`/`final`/`readonly` on all variables, fields, and parameters unless mutation is explicitly justified
+- Zero hardcoded values: all constants, magic numbers, URLs, timeouts, feature flags in centralized config files — import everywhere
+- No raw nulls: use `Optional`/`Result`/`Option` types — never return or accept null where an optional type exists
+- Standard library first: use platform utilities, never reimplement what the language already provides
+- Self-explanatory code: descriptive names for everything, no inline/block/doc comments — if it needs a comment, refactor instead. Exceptions: legal headers, TODOs tracked in `tasklist.md`
+- Senior engineer quality: right abstraction level, edge cases anticipated, small focused functions, clarity over brevity, passes principal-engineer review
+- Match existing codebase: when modifying a project, match every convention exactly — indentation, naming, quotes, imports, patterns, file structure
 
 ## Testing
-Every feature must have tests. Write unit tests for individual logic and integration tests for module boundaries. Tests are written alongside implementation, not after. Test names describe behavior (e.g., `should_return_empty_when_no_items` not `test_method`). Cover edge cases: empty inputs, boundaries, errors, absent values.
+- Write tests alongside implementation, never after
+- Unit tests for logic, integration tests for module boundaries
+- Test names describe behavior: `should_return_empty_when_no_items` not `test_method`
+- Cover edge cases: empty inputs, boundaries, errors, absent values
+- Use the ecosystem's standard test framework
 
-## Follow Up
-Do not assume. When requirements are ambiguous, when multiple valid approaches exist, or when a decision has trade-offs, stop and ask the user. Present options with trade-offs clearly. Check in at significant milestones before proceeding.
+## Communication
+- When requirements are ambiguous or decisions have trade-offs, stop and ask — present options clearly
+- Check in with the user at significant milestones before proceeding
 RULE_EOF
 }
 
@@ -686,17 +584,16 @@ paths:
   - "**/*.py"
 ---
 
-# Python Coding Standards
+# Python Standards
 
-- Type hints on ALL function parameters, return types, and variable annotations. No untyped public functions.
-- Use `Protocol` classes for structural subtyping (prefer over ABCs when inheritance isn't needed).
-- Full `typing` module usage: `Optional`, `Final`, `TypeAlias`, `TypeVar`, `Generic`, `Literal`, `TypedDict`, `Annotated`, `overload`.
-- Use `from __future__ import annotations` at the top of every file.
-- Frozen `@dataclass(frozen=True)` or `NamedTuple` for data containers. Mutable classes need explicit justification.
-- Prefer `tuple` over `list` for fixed collections. Use `Final` for constants.
-- All constants go in a centralized config/constants module. Never hardcode values inline.
-- Use `Optional[X]` instead of `X | None` for clarity (unless project convention differs).
-- Immutability by default: avoid reassignment, prefer creating new values.
+- Type hints on all parameters, return types, and variable annotations — no untyped public functions
+- `Protocol` for structural subtyping (prefer over ABCs when inheritance isn't needed)
+- Full `typing` usage: `Optional`, `Final`, `TypeAlias`, `TypeVar`, `Generic`, `Literal`, `TypedDict`, `Annotated`, `overload`
+- `from __future__ import annotations` in every file
+- Frozen `@dataclass(frozen=True)` or `NamedTuple` for data containers
+- `tuple` over `list` for fixed collections, `Final` for constants
+- `Optional[X]` over `X | None` (unless project convention differs)
+- Constants in a centralized config/constants module
 RULE_EOF
 }
 
@@ -707,21 +604,14 @@ paths:
   - "**/*.java"
 ---
 
-# Java Coding Standards
+# Java Standards
 
-- Null-safety is paramount: use `java.util.Optional` for any value that might be absent.
-- Use `java.util.Objects.isNull()`, `Objects.nonNull()`, `Objects.requireNonNull()` instead of manual null checks.
-- Use static standard library utilities (`Comparator.comparing()`, `Stream` API, `Collections.unmodifiable*()`, `Map.of()`, `List.of()`) instead of reimplementing them.
-- Lombok annotations:
-  - `@Value` for immutable data classes (preferred over `@Data`)
-  - `@Builder` on classes AND records
-  - `@NonNull` on parameters and fields that must not be null
-  - `@Getter` + `@RequiredArgsConstructor` on enums
-  - `@Slf4j` for logging
-- `final` on every variable, field, and parameter by default. Remove only when mutation is explicitly justified.
-- Records with `@Builder` for simple data carriers.
-- All constants in a centralized constants class or config. Never hardcode values inline.
-- SOLID principles: one responsibility per class, program to interfaces, inject dependencies.
+- `java.util.Optional` for absent values; `Objects.isNull()`, `Objects.nonNull()`, `Objects.requireNonNull()` over manual null checks
+- Standard library utilities: `Comparator.comparing()`, Stream API, `Collections.unmodifiable*()`, `Map.of()`, `List.of()`
+- Lombok: `@Value` (preferred over `@Data`), `@Builder` on classes and records, `@NonNull`, `@Getter`+`@RequiredArgsConstructor` on enums, `@Slf4j`
+- `final` on every variable, field, and parameter by default
+- Records with `@Builder` for simple data carriers
+- Constants in a centralized constants class or config
 RULE_EOF
 }
 
@@ -732,18 +622,14 @@ paths:
   - "**/*.rs"
 ---
 
-# Rust Coding Standards
+# Rust Standards
 
-- Lean into ownership. Prefer borrowing (`&`/`&mut`) over cloning.
-- Use `mut` only when mutation is explicitly required and justified.
-- `Result<T, E>` for all fallible operations. Define meaningful error types using `thiserror` or `anyhow`.
-- Never use `.unwrap()` or `.expect()` in library/production code. Use `?` operator or explicit matching.
-- Derive `Clone`, `Debug`, `PartialEq` as appropriate. Use `#[non_exhaustive]` on public enums/structs.
-- Prefer `impl Trait` in argument position for flexibility.
-- Use Rust 2024 edition idioms.
-- All constants in a centralized `constants.rs` or `config.rs` module.
-- Prefer `const` over `static` where possible. Use `once_cell` / `LazyLock` for runtime constants.
-- SOLID: traits for abstraction, small focused modules, dependency injection via trait objects or generics.
+- Prefer borrowing (`&`/`&mut`) over cloning; `mut` only when justified
+- `Result<T, E>` for all fallible operations — meaningful error types via `thiserror` or `anyhow`
+- No `.unwrap()` or `.expect()` in library/production code — use `?` or explicit matching
+- Derive `Clone`, `Debug`, `PartialEq` as appropriate; `#[non_exhaustive]` on public enums/structs
+- `impl Trait` in argument position for flexibility; Rust 2024 edition idioms
+- Constants in `constants.rs` or `config.rs`; prefer `const` over `static`, `LazyLock` for runtime constants
 RULE_EOF
 }
 
@@ -755,18 +641,16 @@ paths:
   - "**/*.tsx"
 ---
 
-# TypeScript Coding Standards
+# TypeScript Standards
 
-- Strict mode always: `"strict": true` in tsconfig.
-- `const` by default. `let` only when reassignment is unavoidable. Never `var`.
-- `readonly` on all object properties. Use `Readonly<T>`, `ReadonlyArray<T>`.
-- Explicit return types on all public/exported functions.
-- Discriminated unions over loose string types or enums.
-- Use `undefined` over `null` where possible. Prefer optional chaining (`?.`) and nullish coalescing (`??`).
-- All constants in a centralized `constants.ts` or `config.ts`. Never hardcode values inline.
-- Use `as const` for literal type narrowing.
-- SOLID: interfaces for contracts, small focused modules, dependency injection.
-- Prefer `unknown` over `any`. If `any` is needed, add a comment explaining why.
+- `"strict": true` in tsconfig — mandatory
+- `const` by default, `let` only for reassignment, never `var`
+- `readonly` on all properties; `Readonly<T>`, `ReadonlyArray<T>`
+- Explicit return types on public/exported functions
+- Discriminated unions over loose strings or enums
+- `undefined` over `null`; optional chaining (`?.`) and nullish coalescing (`??`)
+- Constants in `constants.ts` or `config.ts`; `as const` for literal narrowing
+- `unknown` over `any` — if `any` is needed, justify with a comment
 RULE_EOF
 }
 
@@ -777,18 +661,14 @@ paths:
   - "**/*.go"
 ---
 
-# Go Coding Standards
+# Go Standards
 
-- Return errors explicitly. Never ignore error return values.
-- Use `errors.Is()` and `errors.As()` for error checking, not string comparison.
-- Define custom error types with `fmt.Errorf("context: %w", err)` for wrapping.
-- Minimize pointer usage when value semantics suffice. Pointers only when mutation is required or structs are large.
-- Prefer composition via struct embedding over deep interface hierarchies.
-- Use `const` blocks for related constants. Group by purpose.
-- All configuration in a centralized config struct, loaded from environment or file. Never hardcode values.
-- Use `context.Context` for cancellation and deadline propagation.
-- Table-driven tests as the default testing pattern.
-- Prefer short, focused interfaces (1-3 methods). Accept interfaces, return structs.
+- Return errors explicitly, never ignore — `errors.Is()`/`errors.As()` for checking, `fmt.Errorf("context: %w", err)` for wrapping
+- Value semantics by default; pointers only when mutation is required or structs are large
+- Composition via struct embedding; short focused interfaces (1-3 methods) — accept interfaces, return structs
+- `const` blocks for related constants; centralized config struct loaded from env or file
+- `context.Context` for cancellation and deadline propagation
+- Table-driven tests as default pattern
 RULE_EOF
 }
 
@@ -802,27 +682,47 @@ paths:
   - "**/*.hpp"
 ---
 
-# C/C++ Coding Standards
+# C/C++ Standards
 
-- Use `const` by default on all variables, parameters, and pointers where mutation is not needed.
-- C++: prefer `std::unique_ptr` and `std::shared_ptr` over raw pointers. RAII for all resource management.
-- C++: use `std::optional` for values that might be absent. Avoid raw null checks.
-- C++: prefer `constexpr` over `#define` for compile-time constants.
-- C: use `const` qualifiers liberally. Group constants in header files.
-- All magic numbers and configuration in dedicated header/config files.
-- Use `static` for file-scoped functions and variables.
-- C++: prefer `enum class` over plain `enum`.
-- C++: use `std::string_view` for non-owning string references.
-- Use the standard library algorithms (`<algorithm>`, `<numeric>`) instead of hand-rolled loops where applicable.
+- `const` by default on variables, parameters, and pointers
+- C++: `std::unique_ptr`/`std::shared_ptr` over raw pointers, RAII for all resources
+- C++: `std::optional` for absent values, `constexpr` over `#define`, `enum class` over `enum`, `std::string_view` for non-owning references
+- C: `const` qualifiers liberally, constants grouped in header files
+- `static` for file-scoped functions/variables
+- Standard library algorithms (`<algorithm>`, `<numeric>`) over hand-rolled loops
 RULE_EOF
 }
 
 generate_copilot_instructions() {
-    # Same content as CLAUDE.md but with Copilot-specific header
-    printf "# Copilot Custom Instructions\n\n"
-    printf "These instructions apply to all Copilot interactions in this workspace.\n"
-    printf "For Claude agent sessions, these are automatically loaded.\n\n"
-    generate_claude_md | tail -n +2
+cat << 'COPILOT_EOF'
+# Copilot Custom Instructions
+
+These instructions apply to all Copilot interactions in this workspace.
+
+## Coding Standards
+
+- SOLID: single responsibility per file/class, open/closed, Liskov substitution, interface segregation, dependency inversion
+- Immutable by default: `const`/`final`/`readonly` on all variables, fields, and parameters unless mutation is explicitly justified
+- Zero hardcoded values: all constants, magic numbers, URLs, timeouts, feature flags in centralized config files — import everywhere
+- No raw nulls: use `Optional`/`Result`/`Option` types — never return or accept null where an optional type exists
+- Standard library first: use platform utilities, never reimplement what the language already provides
+- Self-explanatory code: descriptive names, no comments — if it needs a comment, refactor instead
+- Senior engineer quality: right abstraction level, edge cases anticipated, small focused functions, clarity over brevity
+- Match existing codebase conventions exactly when modifying a project
+
+## Testing
+
+- Write tests alongside implementation, never after
+- Unit tests for logic, integration tests for module boundaries
+- Test names describe behavior, cover edge cases
+- Use the ecosystem's standard test framework
+
+## Workflow
+
+- Decompose non-trivial work into small tasks before coding
+- Ask when requirements are ambiguous or decisions have trade-offs
+- Check in with the user at milestones before proceeding
+COPILOT_EOF
 }
 
 convert_rule_to_copilot() {
@@ -830,10 +730,10 @@ convert_rule_to_copilot() {
     local content="$1"
     local extensions=""
 
-    # Extract file extensions from paths like **/*.py, **/*.ts
+    # Extract file extensions from paths like **/*.py, **/*.ts, src/**/*.py
     while IFS= read -r line; do
         local ext
-        ext="$(printf '%s' "${line}" | sed -n 's/.*- "\*\*\/\*\.\(.*\)"/\1/p')"
+        ext="$(printf '%s' "${line}" | sed -n 's/.*- ".*\*\.\([a-zA-Z0-9_]*\)"/\1/p')"
         if [[ -n "${ext}" ]]; then
             if [[ -z "${extensions}" ]]; then
                 extensions="${ext}"
@@ -856,9 +756,11 @@ convert_rule_to_copilot() {
     # Strip old frontmatter, output new one + body
     local body
     body="$(printf '%s\n' "${content}" | awk '
-        BEGIN { fence=0 }
-        /^---$/ { fence++; next }
-        fence >= 2 { print }
+        BEGIN { state=0 }
+        state==0 && /^---$/ { state=1; next }
+        state==1 && /^---$/ { state=2; next }
+        state==1 { next }
+        state==2 { print }
     ')"
 
     printf -- '---\napplyTo: "%s"\n---\n%s\n' "${apply_to}" "${body}"
@@ -873,6 +775,8 @@ parse_args() {
             --global)     GLOBAL_INSTALL=true ;;
             --force)      FORCE_OVERWRITE=true ;;
             --no-detect)  AUTO_DETECT=false ;;
+            --verify)     VERIFY_ONLY=true ;;
+            --version|-v) printf "Claude Code Setup v%s\n" "${VERSION}"; exit 0 ;;
             --help|-h)    show_help ;;
             *)
                 error "Unknown flag: $1"
@@ -886,6 +790,12 @@ parse_args() {
 
 main() {
     parse_args "$@"
+
+    if [[ "${VERIFY_ONLY}" == true ]]; then
+        verify_integrity
+        exit 0
+    fi
+
     banner
     interactive_select_options
     show_runtime_options
@@ -915,8 +825,61 @@ main() {
         languages="$(run_with_spinner "Scanning project files" detect_languages "${target_dir}")"
 
         if [[ -z "${languages}" ]]; then
-            warn "No languages detected (empty project). Installing all rules."
-            languages="python java rust typescript go c_cpp"
+            if [[ -t 1 ]] && [[ "${CI:-}" != "true" ]] && [[ -r /dev/tty ]]; then
+                warn "No languages detected."
+                printf "  ${BOLD}Select languages to install:${RESET}\n"
+                printf "  ${DIM}Press numbers to toggle, Enter to confirm, a for all.${RESET}\n\n"
+
+                local lang_python=false lang_java=false lang_rust=false
+                local lang_typescript=false lang_go=false lang_c_cpp=false
+                printf "\033[s"
+
+                while true; do
+                    printf "\033[u\033[J"
+                    printf "    1) %b Python\n" "$(checkbox "${lang_python}")"
+                    printf "    2) %b Java\n" "$(checkbox "${lang_java}")"
+                    printf "    3) %b Rust\n" "$(checkbox "${lang_rust}")"
+                    printf "    4) %b TypeScript\n" "$(checkbox "${lang_typescript}")"
+                    printf "    5) %b Go\n" "$(checkbox "${lang_go}")"
+                    printf "    6) %b C/C++\n" "$(checkbox "${lang_c_cpp}")"
+                    printf "\n  ${BOLD}Select:${RESET} ${DIM}[1-6 toggle, a all, Enter confirm]${RESET} "
+
+                    local lkey
+                    IFS= read -rsn1 lkey < /dev/tty || true
+                    if [[ "${lkey}" == $'\x1b' ]]; then
+                        IFS= read -rsn2 -t 0.01 _discard < /dev/tty || true
+                        continue
+                    fi
+                    case "${lkey}" in
+                        "") printf "\n"; break ;;
+                        1) toggle_bool_var "lang_python" ;;
+                        2) toggle_bool_var "lang_java" ;;
+                        3) toggle_bool_var "lang_rust" ;;
+                        4) toggle_bool_var "lang_typescript" ;;
+                        5) toggle_bool_var "lang_go" ;;
+                        6) toggle_bool_var "lang_c_cpp" ;;
+                        a|A) lang_python=true; lang_java=true; lang_rust=true
+                             lang_typescript=true; lang_go=true; lang_c_cpp=true ;;
+                    esac
+                done
+
+                languages=""
+                [[ "${lang_python}" == true ]] && languages="${languages}python "
+                [[ "${lang_java}" == true ]] && languages="${languages}java "
+                [[ "${lang_rust}" == true ]] && languages="${languages}rust "
+                [[ "${lang_typescript}" == true ]] && languages="${languages}typescript "
+                [[ "${lang_go}" == true ]] && languages="${languages}go "
+                [[ "${lang_c_cpp}" == true ]] && languages="${languages}c_cpp "
+                languages="${languages% }"
+
+                if [[ -z "${languages}" ]]; then
+                    warn "No languages selected. Installing all rules."
+                    languages="python java rust typescript go c_cpp"
+                fi
+            else
+                warn "No languages detected (empty project). Installing all rules."
+                languages="python java rust typescript go c_cpp"
+            fi
         else
             for lang in ${languages}; do
                 local display_name
@@ -940,6 +903,7 @@ main() {
 
     if [[ "${GLOBAL_INSTALL}" == true ]]; then
         mkdir -p "${target_dir}"
+        # shellcheck disable=SC2088
         write_file "${target_dir}/CLAUDE.md" "$(generate_claude_md)" "~/.claude/CLAUDE.md"
     else
         write_file "${target_dir}/CLAUDE.md" "$(generate_claude_md)" "CLAUDE.md"
@@ -951,6 +915,7 @@ main() {
     local rules_label_prefix
     if [[ "${GLOBAL_INSTALL}" == true ]]; then
         rules_dir="${target_dir}/rules"
+        # shellcheck disable=SC2088
         rules_label_prefix="~/.claude/rules"
     else
         rules_dir="${target_dir}/.claude/rules"
@@ -1005,9 +970,13 @@ CTX_EOF
         fi
     fi
 
-    # ── Copilot setup (optional) ──────────────────────────────────────────
+    # ── Copilot setup (optional, project-only) ───────────────────────────
 
-    if [[ "${SETUP_COPILOT}" == true ]]; then
+    if [[ "${SETUP_COPILOT}" == true ]] && [[ "${GLOBAL_INSTALL}" == true ]]; then
+        warn "Copilot setup is project-only, skipping with --global"
+    fi
+
+    if [[ "${SETUP_COPILOT}" == true ]] && [[ "${GLOBAL_INSTALL}" == false ]]; then
         step "Setting up GitHub Copilot instructions"
 
         local github_dir="${target_dir}/.github"

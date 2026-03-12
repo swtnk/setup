@@ -6,35 +6,37 @@ One-command installers for development tools and coding standards, hosted at [sw
 
 ### Claude Code for VS Code
 
-Architecture-first coding standards for Claude Code in VS Code.
+Architecture-first coding standards for Claude Code in VS Code. v2.0 — zero-duplication design that maximizes context window efficiency.
 
 ```bash
 curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash
 ```
 
-**10 Coding Principles enforced:**
+**Design philosophy:** `CLAUDE.md` defines workflow and project memory only (~40 lines). All coding standards live in `.claude/rules/` where Claude Code loads them per-file-type. Zero content duplication between files = maximum context window for your actual code.
 
-1. **SOLID Always** — Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
-2. **Immutable by Default** — All variables const/final/readonly unless mutation is justified
-3. **Zero Hardcoded Values** — Constants in centralized config files, referenced everywhere
-4. **No Raw Nulls** — Optional/Result types everywhere
-5. **Standard Library First** — Use platform utilities, don't reimplement
-6. **Self-Explanatory Code** — No comments. Descriptive names, clean structure, refactor instead of commenting
-7. **Senior Engineer Mindset** — Right abstractions, edge case coverage, design for change
-8. **Break Down Before Building** — Decompose into tasks in `.claude/context/tasklist.md` before coding
-9. **Testing Is Not Optional** — Unit + integration tests alongside implementation
-10. **Follow Up With the User** — Ask when ambiguous, check in at milestones
+**10 Universal Coding Principles** (enforced via `.claude/rules/general.md`, loaded on every file):
 
-**Additional features:** Language auto-detection (Python, Java, Rust, TypeScript, Go, C/C++), project memory (`.claude/context/`), existing codebase pattern matching, GitHub Copilot support.
+1. **SOLID** — Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+2. **Immutable by Default** — `const`/`final`/`readonly` unless mutation is justified
+3. **Zero Hardcoded Values** — Centralized config files, imported everywhere
+4. **No Raw Nulls** — `Optional`/`Result`/`Option` types everywhere
+5. **Standard Library First** — Use platform utilities, never reimplement
+6. **Self-Explanatory Code** — Descriptive names, no comments, refactor instead
+7. **Senior Engineer Quality** — Right abstractions, edge cases, clarity over brevity
+8. **Match Existing Codebase** — Generated code indistinguishable from the team's own
+9. **Testing is Mandatory** — Unit + integration tests alongside implementation, never after
+10. **Ask When Uncertain** — Stop and ask when ambiguous, present trade-offs, check in at milestones
+
+**Additional features:** Language auto-detection (Python, Java, Rust, TypeScript, Go, C/C++), project memory (`.claude/context/`), task decomposition workflow, GitHub Copilot support.
 
 **What gets created:**
 
 ```
 your-project/
-├── CLAUDE.md                  # Main instructions
+├── CLAUDE.md                  # Workflow & project memory (~40 lines)
 ├── .claude/
 │   ├── rules/
-│   │   ├── general.md         # Universal standards
+│   │   ├── general.md         # Universal standards (~28 lines)
 │   │   ├── python.md          # Type hints, protocols, typing
 │   │   ├── java.md            # Lombok, Optional, null-safety
 │   │   ├── rust.md            # Ownership, Result types
@@ -46,14 +48,23 @@ your-project/
 └── .gitignore                 # Updated with .claude/context/
 ```
 
+**Context window usage** (lines loaded per conversation):
+
+| Project type | v1.1.0 | v2.0.0 |
+|---|---|---|
+| Python only | ~252 lines | ~82 lines |
+| Python + TypeScript | ~272 lines | ~93 lines |
+| All languages | ~380 lines | ~130 lines |
+
 **Flags:**
 
 | Flag | Description |
 |---|---|
 | `--copilot` | Also set up GitHub Copilot instructions (`.github/`) |
 | `--global` | Install to `~/.claude/` (applies to all projects) |
-| `--force` | Overwrite existing files |
+| `--force` | Overwrite existing files (use to upgrade from v1) |
 | `--no-detect` | Install all language rules |
+| `--verify` | Download and verify installer checksum |
 
 **Examples:**
 
@@ -66,6 +77,9 @@ curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash -s -- --
 
 # Force + all languages
 curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash -s -- --force --no-detect
+
+# Upgrade from v1 to v2
+curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash -s -- --force
 ```
 
 ## Repo Structure
@@ -77,11 +91,15 @@ setup/                         (repo root, served at /setup/)
 ├── .nojekyll                  # Serve extensionless files correctly
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml         # Auto-deploy on push to main
+│       └── deploy.yml         # Validate + auto-deploy on push to main
 └── claude/
-    └── vscode/
-        ├── index.html         # Landing page for /setup/claude/vscode/
-        └── install            # The bash installer script (self-contained)
+    ├── vscode/
+    │   ├── install            # Self-contained bash installer
+    │   ├── test.sh            # Sandbox test runner
+    │   └── index.html         # Landing page
+    └── skills/
+        ├── SKILL.md           # Project Architect skill definition
+        └── index.html         # Skills directory page
 ```
 
 ## How the URL Routing Works
