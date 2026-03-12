@@ -176,7 +176,7 @@ show_runtime_options() {
 }
 
 interactive_select_options() {
-    if [[ ! -t 0 ]] || [[ ! -t 1 ]] || [[ "${CI:-}" == "true" ]]; then
+    if [[ ! -t 1 ]] || [[ "${CI:-}" == "true" ]] || [[ ! -r /dev/tty ]]; then
         return 0
     fi
 
@@ -208,10 +208,10 @@ interactive_select_options() {
         printf "\n  ${BOLD}Select:${RESET} ${DIM}[1-4 toggle, Enter continue, q cancel]${RESET} "
 
         local key
-        IFS= read -rsn1 key || true
+        IFS= read -rsn1 key < /dev/tty || true
 
         if [[ "${key}" == $'\x1b' ]]; then
-            IFS= read -rsn2 -t 0.01 _discard || true
+            IFS= read -rsn2 -t 0.01 _discard < /dev/tty || true
             continue
         fi
 
@@ -241,13 +241,13 @@ interactive_select_options() {
 }
 
 confirm_if_interactive() {
-    if [[ ! -t 0 ]]; then
+    if [[ ! -t 1 ]] || [[ ! -r /dev/tty ]]; then
         return 0
     fi
 
     printf "  ${BOLD}Continue?${RESET} [Y/n] "
     local reply
-    read -r reply || true
+    read -r reply < /dev/tty || true
     case "${reply:-Y}" in
         [Nn]|[Nn][Oo])
             printf "\n  ${YELLOW}Cancelled by user.${RESET}\n\n"
