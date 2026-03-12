@@ -123,7 +123,18 @@
             margin-bottom: 0.9rem;
         }
 
-        .tool-icon { font-size: 1.75rem; }
+        .tool-icon {
+            width: 1.6rem;
+            height: 1.6rem;
+            display: inline-flex;
+            color: var(--cyan);
+            flex-shrink: 0;
+        }
+
+        .tool-icon svg {
+            width: 100%;
+            height: 100%;
+        }
 
         .tool-header h2 {
             font-size: clamp(1.15rem, 1.8vw, 1.35rem);
@@ -201,7 +212,12 @@
         <div class="tools">
             <a href="./claude/vscode/" class="tool-card">
                 <div class="tool-header">
-                    <span class="tool-icon">🧠</span>
+                    <span class="tool-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M9 4.5C7.07 4.5 5.5 6.07 5.5 8C5.5 8.46 5.59 8.9 5.76 9.3C4.68 9.89 4 11.03 4 12.3C4 14.16 5.43 15.7 7.25 15.87C7.23 16.01 7.22 16.15 7.22 16.3C7.22 18.06 8.64 19.5 10.4 19.5C11.34 19.5 12.18 19.1 12.75 18.46C13.33 19.1 14.16 19.5 15.1 19.5C16.86 19.5 18.28 18.06 18.28 16.3C18.28 16.15 18.27 16.01 18.25 15.87C20.07 15.7 21.5 14.16 21.5 12.3C21.5 11.03 20.82 9.89 19.74 9.3C19.91 8.9 20 8.46 20 8C20 6.07 18.43 4.5 16.5 4.5C15.52 4.5 14.63 4.9 14 5.54C13.37 4.9 12.48 4.5 11.5 4.5H9Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12.75 18.45V11.2M9.35 13.2H12.75M16.15 13.2H12.75" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
                     <h2>Claude Code for VS Code</h2>
                 </div>
                 <p class="tool-desc">
@@ -215,7 +231,11 @@
 
             <a href="./claude/skills/" class="tool-card">
                 <div class="tool-header">
-                    <span class="tool-icon">⚡</span>
+                    <span class="tool-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M13 2L4 14H11L10 22L20 9H13L13 2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
                     <h2>Claude Skills</h2>
                 </div>
                 <p class="tool-desc">

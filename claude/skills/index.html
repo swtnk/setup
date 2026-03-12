@@ -33,19 +33,19 @@
         }
 
         .container {
-            width: min(92%, 52rem);
+            width: min(92%, 78rem);
             margin: 0 auto;
-            padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1.25rem, 3vw, 2.5rem);
+            padding: clamp(2.5rem, 5vw, 5rem) clamp(1.25rem, 3vw, 2.5rem);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        .back-wrap {
+        .home-wrap {
             margin-bottom: clamp(1.1rem, 2.5vw, 1.6rem);
         }
 
-        .back-btn {
+        .home-btn {
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
@@ -59,7 +59,14 @@
             transition: border-color 0.15s, background 0.15s;
         }
 
-        .back-btn:hover {
+        .home-icon {
+            width: 1rem;
+            height: 1rem;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .home-btn:hover {
             border-color: var(--purple-dim);
             background: #1a1f27;
         }
@@ -70,7 +77,7 @@
         }
 
         h1 {
-            font-size: clamp(2.1rem, 5vw, 2.8rem);
+            font-size: clamp(2.2rem, 5vw, 3.4rem);
             font-weight: 800;
             letter-spacing: -0.03em;
             margin-bottom: 0.75rem;
@@ -81,27 +88,27 @@
         }
 
         .tagline {
-            font-size: clamp(1rem, 2vw, 1.15rem);
+            font-size: clamp(1rem, 2vw, 1.25rem);
             color: var(--text-muted);
-            max-width: 36rem;
+            max-width: 42rem;
             margin: 0 auto;
         }
 
         .paths {
             display: grid;
-            gap: 1.5rem;
-            margin: clamp(2rem, 4vw, 3rem) 0;
+            gap: 1.2rem;
+            margin: clamp(2.5rem, 4vw, 3.5rem) 0;
         }
 
         .path-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 0.75rem;
-            padding: clamp(1.4rem, 2.5vw, 1.8rem);
+            border-radius: 0.8rem;
+            padding: clamp(1.25rem, 2vw, 1.8rem);
         }
 
         .path-card h2 {
-            font-size: 1.15rem;
+            font-size: clamp(1.15rem, 1.8vw, 1.35rem);
             font-weight: 700;
             margin-bottom: 0.25rem;
         }
@@ -116,7 +123,7 @@
         }
 
         .path-card p {
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: var(--text-muted);
             margin-bottom: 1rem;
         }
@@ -127,7 +134,7 @@
         }
 
         .path-card li {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-muted);
             margin-bottom: 0.4rem;
         }
@@ -139,11 +146,11 @@
 
         .cmd-block {
             font-family: var(--font-mono);
-            font-size: clamp(0.8rem, 1.2vw, 0.88rem);
+            font-size: clamp(0.95rem, 1.4vw, 1.05rem);
             color: var(--green);
             background: var(--code-bg);
-            padding: 0.8rem 1rem;
-            border-radius: 0.5rem;
+            padding: 1rem;
+            border-radius: 0.65rem;
             overflow-x: auto;
             white-space: nowrap;
         }
@@ -156,13 +163,13 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.6rem 1.1rem;
+            padding: 0.65rem 1.15rem;
             border-radius: 0.45rem;
             border: 1px solid var(--purple-dim);
             background: var(--purple-dim);
             color: white;
             text-decoration: none;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 600;
             transition: background 0.15s, transform 0.1s;
         }
@@ -175,7 +182,7 @@
         .secondary-link {
             display: inline-block;
             margin-left: 1rem;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: var(--text-muted);
             text-decoration: none;
         }
@@ -203,11 +210,11 @@
         .divider::after { right: 0; }
 
         .skill-list {
-            margin: clamp(2rem, 4vw, 3rem) 0;
+            margin: clamp(2.5rem, 4vw, 3.5rem) 0;
         }
 
         .skill-list h2 {
-            font-size: clamp(1.1rem, 2vw, 1.25rem);
+            font-size: clamp(1.3rem, 2vw, 1.6rem);
             font-weight: 700;
             margin-bottom: 1rem;
         }
@@ -215,8 +222,8 @@
         .skill-item {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 0.65rem;
-            padding: clamp(1rem, 2vw, 1.25rem);
+            border-radius: 0.8rem;
+            padding: clamp(1.1rem, 2vw, 1.35rem);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -225,13 +232,13 @@
         }
 
         .skill-info h3 {
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 0.2rem;
         }
 
         .skill-info p {
-            font-size: 0.85rem;
+            font-size: 0.92rem;
             color: var(--text-muted);
         }
 
@@ -243,13 +250,13 @@
         }
 
         .small-btn {
-            padding: 0.35rem 0.75rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 0.35rem;
             border: 1px solid var(--border);
             background: var(--surface);
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 0.8rem;
+            font-size: 0.86rem;
             transition: border-color 0.15s, color 0.15s;
         }
 
@@ -274,7 +281,7 @@
             padding-top: 2rem;
             border-top: 1px solid var(--border);
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
 
         footer p + p { margin-top: 0.35rem; }
@@ -285,16 +292,23 @@
         }
 
         footer a:hover { text-decoration: underline; }
+
+        @media (min-width: 70rem) {
+            .path-card,
+            .skill-item {
+                border-color: #3a414a;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="back-wrap">
-            <a href="../.." class="back-btn" aria-label="Back to all tools">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <div class="home-wrap">
+            <a href="../../" class="home-btn" aria-label="Home">
+                <svg class="home-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M3 10.5L12 3L21 10.5V20C21 20.55 20.55 21 20 21H15V14H9V21H4C3.45 21 3 20.55 3 20V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span>All Tools</span>
+                <span>Home</span>
             </a>
         </div>
 
