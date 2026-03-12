@@ -79,22 +79,16 @@
             margin-bottom: 1rem;
         }
 
-        .tool-cmd {
-            font-family: var(--font-mono);
-            font-size: clamp(0.9rem, 1.2vw, 1rem);
-            color: var(--green);
-            background: var(--bg);
-            padding: 0.75rem 0.95rem;
-            padding-right: 3.5rem;
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            white-space: nowrap;
-            position: relative;
+        .tool-link {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--cyan);
+            transition: color 0.15s;
         }
 
-        .tool-cmd .prompt { color: var(--text-muted); user-select: none; }
-        .tool-cmd .url { color: var(--cyan); }
-        .tool-cmd .pipe { color: var(--text-muted); }
+        .tool-card:hover .tool-link {
+            color: var(--purple);
+        }
 
         footer p + p {
             margin-top: 0.45rem;
@@ -142,10 +136,7 @@
                     Architecture-first coding standards for Claude Code. SOLID principles, immutability by default,
                     project memory, language auto-detection. Works with Claude Code extension and GitHub Copilot.
                 </p>
-                <div class="tool-cmd" data-cmd="curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash">
-                    <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash
-                    <span class="cmd-copy-btn" role="button" tabindex="0">Copy</span>
-                </div>
+                <span class="tool-link">View setup instructions &rarr;</span>
             </a>
 
             <a href="./claude/skills/" class="tool-card">
@@ -161,9 +152,7 @@
                     Downloadable .skill files for Claude.ai. Install custom coding standards directly into
                     the Claude web and app interface. Same 10 principles, different platform.
                 </p>
-                <div class="tool-cmd">
-                    <span class="prompt">&rarr; </span>Download .skill files for Claude.ai
-                </div>
+                <span class="tool-link">Browse skill files &rarr;</span>
             </a>
         </div>
 
@@ -173,25 +162,6 @@
         </footer>
     </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            document.querySelectorAll(".cmd-copy-btn").forEach(function(btn) {
-                btn.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var wrap = btn.closest("[data-cmd]");
-                    if (!wrap) return;
-                    navigator.clipboard.writeText(wrap.getAttribute("data-cmd")).then(function() {
-                        btn.textContent = "Copied!";
-                        btn.classList.add("copied");
-                        setTimeout(function() {
-                            btn.textContent = "Copy";
-                            btn.classList.remove("copied");
-                        }, 2000);
-                    });
-                });
-            });
-        });
-    </script>
+
 </body>
 </html>

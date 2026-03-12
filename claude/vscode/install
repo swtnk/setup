@@ -520,7 +520,7 @@ Architecture-first code generation. Understand the project fully before writing 
 
 ## Project Memory (`.claude/context/`)
 
-Maintain these files, updated after every significant change. Read before writing. Never delete — append and update.
+This directory is your persistent brain for this project. **Create these files if they don't exist**, then keep them updated after every significant change. Read before writing. Never delete — append and update.
 
 | File | Purpose |
 |---|---|
@@ -531,6 +531,8 @@ Maintain these files, updated after every significant change. Read before writin
 | `dependencies.md` | Libraries, rationale, version constraints |
 | `tasklist.md` | Work items as checkboxes, ordered by dependency |
 | `plan.md` | Phases, milestones, delivery strategy, open questions |
+
+**On first interaction with a project:** create all missing context files by analyzing the codebase. On subsequent interactions, read them first to resume where you left off.
 
 ## Workflow
 
@@ -716,6 +718,22 @@ These instructions apply to all Copilot interactions in this workspace.
 - Unit tests for logic, integration tests for module boundaries
 - Test names describe behavior, cover edge cases
 - Use the ecosystem's standard test framework
+
+## Project Memory (`.claude/context/`)
+
+Maintain a persistent project brain in `.claude/context/`. **Create these files if they don't exist**, then keep them updated after every significant change. Read before writing. Never delete — append and update.
+
+| File | Purpose |
+|---|---|
+| `architecture.md` | System design, components, data flow, design decisions |
+| `conventions.md` | Coding patterns, naming, file organization, imports |
+| `progress.md` | What's complete, in progress, pending |
+| `constants-map.md` | Config/constants locations and contents |
+| `dependencies.md` | Libraries, rationale, version constraints |
+| `tasklist.md` | Work items as checkboxes, ordered by dependency |
+| `plan.md` | Phases, milestones, delivery strategy, open questions |
+
+**On first interaction with a project:** create all missing context files by analyzing the codebase. On subsequent interactions, read them first to resume where you left off.
 
 ## Workflow
 
@@ -951,12 +969,13 @@ so Claude never has to re-analyze the codebase from scratch.
 | `tasklist.md` | Planned work items with checkboxes |
 | `plan.md` | Project plan, phases, milestones |
 
-These files are auto-generated and maintained by Claude during development.
-This directory is excluded from git and Docker builds.
+These files are **not** created at install time. Claude/Copilot will create and populate
+them on first interaction by analyzing the codebase. They are then kept up to date
+across conversations. This directory is excluded from git and Docker builds.
 CTX_EOF
 )"
         write_file "${context_dir}/README.md" "${context_readme}" ".claude/context/README.md"
-        success "Ready: ${DIM}.claude/context/${RESET} ${GRAY}(Claude will populate on first use)${RESET}"
+        success "Ready: ${DIM}.claude/context/${RESET} ${GRAY}(Claude will create and populate files on first use)${RESET}"
     fi
 
     # ── Update .gitignore ─────────────────────────────────────────────────
