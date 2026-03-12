@@ -62,13 +62,256 @@ warn()    { printf "  ${YELLOW}!${RESET} %b\n" "$1"; }
 error()   { printf "  ${CROSS} %b\n" "$1" >&2; }
 step()    { printf "\n  ${ARROW} ${BOLD}%b${RESET}\n" "$1"; }
 
+toggle_bool_var() {
+    local var_name="$1"
+    if [[ "${!var_name}" == true ]]; then
+        printf -v "${var_name}" "%s" "false"
+    else
+        printf -v "${var_name}" "%s" "true"
+    fi
+}
+
+checkbox() {
+    local value="$1"
+    if [[ "${value}" == true ]]; then
+        printf "%b" "${GREEN}[x]${RESET}"
+    else
+        printf "%b" "${DIM}[ ]${RESET}"
+    fi
+}
+
+repeat_char() {
+    local char="$1"
+    local count="$2"
+    if (( count <= 0 )); then
+        return 0
+    fi
+    printf "%${count}s" "" | tr ' ' "${char}"
+}
+
 banner() {
+    local art1_plain="░█▀▀░█░░░█▀█░█░█░█▀▄░█▀▀░█▀▀░█▀█░█▀▄░█▀▀"
+    local art2_plain="░█░░░█░░░█▀█░█░█░█░█░█▀▀░█░░░█░█░█░█░█▀▀"
+    local art3_plain="░▀▀▀░▀▀▀░▀░▀░▀▀▀░▀▀░░▀▀▀░▀▀▀░▀▀▀░▀▀░░▀▀▀"
+    local line4_plain="v${VERSION}"
+    local line5_plain="Project Architect Setup"
+    local line6_plain="Created By: Swetank Subham"
+    local line7_plain="https://swetanksubham.com"
+
+    local art1_rendered="${WHITE}${BOLD}${art1_plain}${RESET}"
+    local art2_rendered="${WHITE}${BOLD}${art2_plain}${RESET}"
+    local art3_rendered="${WHITE}${BOLD}${art3_plain}${RESET}"
+    local line4_rendered="${DIM}${line4_plain}${RESET}"
+    local line5_rendered="${DIM}${line5_plain}${RESET}"
+    local line6_rendered="${DIM}${line6_plain}${RESET}"
+    local line7_rendered="${CYAN}${line7_plain}${RESET}"
+
+    local content_width="${#art1_plain}"
+    local art2_len="${#art2_plain}"
+    local art3_len="${#art3_plain}"
+    local line4_len="${#line4_plain}"
+    local line5_len="${#line5_plain}"
+    local line6_len="${#line6_plain}"
+    local line7_len="${#line7_plain}"
+
+    if (( art2_len > content_width )); then content_width="${art2_len}"; fi
+    if (( art3_len > content_width )); then content_width="${art3_len}"; fi
+    if (( line4_len > content_width )); then content_width="${line4_len}"; fi
+    if (( line5_len > content_width )); then content_width="${line5_len}"; fi
+    if (( line6_len > content_width )); then content_width="${line6_len}"; fi
+    if (( line7_len > content_width )); then content_width="${line7_len}"; fi
+
+    local inner_width=$((content_width + 4))
+    local border
+    border="$(repeat_char "═" "${inner_width}")"
+    local art1_pad=$((content_width - ${#art1_plain}))
+    local art2_pad=$((content_width - ${#art2_plain}))
+    local art3_pad=$((content_width - ${#art3_plain}))
+    local line4_pad=$((content_width - ${#line4_plain}))
+    local line5_pad=$((content_width - ${#line5_plain}))
+    local line6_pad=$((content_width - ${#line6_plain}))
+    local line7_pad=$((content_width - ${#line7_plain}))
+
     printf "\n"
-    printf "  ${PURPLE}${BOLD}╔═══════════════════════════════════════════════╗${RESET}\n"
-    printf "  ${PURPLE}${BOLD}║${RESET}  ${WHITE}${BOLD}Claude Code${RESET} ${GRAY}for VS Code${RESET}  ${DIM}v${VERSION}${RESET}            ${PURPLE}${BOLD}║${RESET}\n"
-    printf "  ${PURPLE}${BOLD}║${RESET}  ${DIM}Project Architect Setup${RESET}                      ${PURPLE}${BOLD}║${RESET}\n"
-    printf "  ${PURPLE}${BOLD}╚═══════════════════════════════════════════════╝${RESET}\n"
+    printf "  ${PURPLE}${BOLD}╔%s╗${RESET}\n" "${border}"
+    printf "  ${PURPLE}${BOLD}║${RESET}  %b%*s  ${PURPLE}${BOLD}║${RESET}\n" "${art1_rendered}" "${art1_pad}" ""
+    printf "  ${PURPLE}${BOLD}║${RESET}  %b%*s  ${PURPLE}${BOLD}║${RESET}\n" "${art2_rendered}" "${art2_pad}" ""
+    printf "  ${PURPLE}${BOLD}║${RESET}  %b%*s  ${PURPLE}${BOLD}║${RESET}\n" "${art3_rendered}" "${art3_pad}" ""
+    printf "  ${PURPLE}${BOLD}║${RESET}  %b%*s  ${PURPLE}${BOLD}║${RESET}\n" "${line4_rendered}" "${line4_pad}" ""
+    printf "  ${PURPLE}${BOLD}║${RESET}  %b%*s  ${PURPLE}${BOLD}║${RESET}\n" "${line5_rendered}" "${line5_pad}" ""
+    printf "  ${PURPLE}${BOLD}║${RESET}  %b%*s  ${PURPLE}${BOLD}║${RESET}\n" "${line6_rendered}" "${line6_pad}" ""
+    printf "  ${PURPLE}${BOLD}║${RESET}  %b%*s  ${PURPLE}${BOLD}║${RESET}\n" "${line7_rendered}" "${line7_pad}" ""
+    printf "  ${PURPLE}${BOLD}╚%s╝${RESET}\n" "${border}"
     printf "\n"
+}
+
+show_runtime_options() {
+    local enabled="${GREEN}${BOLD}ON${RESET}"
+    local disabled="${DIM}off${RESET}"
+
+    local copilot_status="${disabled}"
+    local global_status="${disabled}"
+    local force_status="${disabled}"
+    local no_detect_status="${disabled}"
+
+    if [[ "${SETUP_COPILOT}" == true ]]; then
+        copilot_status="${enabled}"
+    fi
+    if [[ "${GLOBAL_INSTALL}" == true ]]; then
+        global_status="${enabled}"
+    fi
+    if [[ "${FORCE_OVERWRITE}" == true ]]; then
+        force_status="${enabled}"
+    fi
+    if [[ "${AUTO_DETECT}" == false ]]; then
+        no_detect_status="${enabled}"
+    fi
+
+    printf "  ${BOLD}Options:${RESET}\n"
+    printf "    --copilot    %b\n" "${copilot_status}"
+    printf "    --global     %b\n" "${global_status}"
+    printf "    --force      %b\n" "${force_status}"
+    printf "    --no-detect  %b ${DIM}(skip auto-detect languages)${RESET}\n" "${no_detect_status}"
+    printf "\n"
+}
+
+interactive_select_options() {
+    if [[ ! -t 0 ]] || [[ ! -t 1 ]] || [[ "${CI:-}" == "true" ]]; then
+        return 0
+    fi
+
+    printf "  ${BOLD}Select options (live):${RESET}\n"
+    printf "  ${DIM}Press 1-4 to toggle instantly. Press Enter to continue, q to cancel.${RESET}\n\n"
+    printf "\033[s"
+
+    while true; do
+        printf "\033[u\033[J"
+
+        local copilot_box
+        local global_box
+        local force_box
+        local no_detect_box
+        copilot_box="$(checkbox "${SETUP_COPILOT}")"
+        global_box="$(checkbox "${GLOBAL_INSTALL}")"
+        force_box="$(checkbox "${FORCE_OVERWRITE}")"
+
+        if [[ "${AUTO_DETECT}" == false ]]; then
+            no_detect_box="$(checkbox true)"
+        else
+            no_detect_box="$(checkbox false)"
+        fi
+
+        printf "    1) %b --copilot\n" "${copilot_box}"
+        printf "    2) %b --global\n" "${global_box}"
+        printf "    3) %b --force\n" "${force_box}"
+        printf "    4) %b --no-detect\n" "${no_detect_box}"
+        printf "\n  ${BOLD}Select:${RESET} ${DIM}[1-4 toggle, Enter continue, q cancel]${RESET} "
+
+        local key
+        IFS= read -rsn1 key || true
+
+        if [[ "${key}" == $'\x1b' ]]; then
+            IFS= read -rsn2 -t 0.01 _discard || true
+            continue
+        fi
+
+        case "${key}" in
+            "")
+                printf "\n\n"
+                break
+                ;;
+            1)
+                toggle_bool_var "SETUP_COPILOT"
+                ;;
+            2)
+                toggle_bool_var "GLOBAL_INSTALL"
+                ;;
+            3)
+                toggle_bool_var "FORCE_OVERWRITE"
+                ;;
+            4)
+                toggle_bool_var "AUTO_DETECT"
+                ;;
+            q|Q)
+                printf "\n\n  ${YELLOW}Cancelled by user.${RESET}\n\n"
+                exit 0
+                ;;
+        esac
+    done
+}
+
+confirm_if_interactive() {
+    if [[ ! -t 0 ]]; then
+        return 0
+    fi
+
+    printf "  ${BOLD}Continue?${RESET} [Y/n] "
+    local reply
+    read -r reply || true
+    case "${reply:-Y}" in
+        [Nn]|[Nn][Oo])
+            printf "\n  ${YELLOW}Cancelled by user.${RESET}\n\n"
+            exit 0
+            ;;
+    esac
+    printf "\n"
+}
+
+run_with_spinner() {
+    local message="$1"
+    shift
+
+    if [[ ! -t 1 ]] || [[ "${CI:-}" == "true" ]]; then
+        "$@"
+        return
+    fi
+
+    local frames='|/-\'
+    local frame_index=0
+    local output_file
+    output_file="$(mktemp 2>/dev/null || printf "/tmp/claude-install-%s.out" "$$")"
+    local pid
+
+    "$@" >"${output_file}" 2>&1 &
+    pid=$!
+
+    while kill -0 "${pid}" 2>/dev/null; do
+        local frame="${frames:frame_index:1}"
+        printf "\r  ${CYAN}%s${RESET} %b" "${frame}" "${message}" >&2
+        frame_index=$(( (frame_index + 1) % 4 ))
+        sleep 0.1
+    done
+
+    local status=0
+    if wait "${pid}"; then
+        printf "\r\033[K" >&2
+        printf "  ${CHECK} %b\n" "${message}" >&2
+    else
+        status=$?
+        printf "\r\033[K" >&2
+        printf "  ${CROSS} %b\n" "${message}" >&2
+    fi
+
+    cat "${output_file}"
+    rm -f "${output_file}"
+    return "${status}"
+}
+
+install_rules() {
+    local rules_dir="$1"
+    local languages_input="$2"
+    local rules_label_prefix="$3"
+
+    mkdir -p "${rules_dir}"
+
+    write_file "${rules_dir}/general.md" "$(generate_rule_general)" "${rules_label_prefix}/general.md"
+
+    for lang in ${languages_input}; do
+        local generator_fn="generate_rule_${lang}"
+        if declare -f "${generator_fn}" > /dev/null 2>&1; then
+            write_file "${rules_dir}/${lang}.md" "$(${generator_fn})" "${rules_label_prefix}/${lang}.md"
+        fi
+    done
 }
 
 show_help() {
@@ -644,6 +887,9 @@ parse_args() {
 main() {
     parse_args "$@"
     banner
+    interactive_select_options
+    show_runtime_options
+    confirm_if_interactive
 
     # ── Determine install target ──────────────────────────────────────────
 
@@ -666,7 +912,7 @@ main() {
     else
         step "Detecting project languages"
 
-        languages="$(detect_languages "${target_dir}")"
+        languages="$(run_with_spinner "Scanning project files" detect_languages "${target_dir}")"
 
         if [[ -z "${languages}" ]]; then
             warn "No languages detected (empty project). Installing all rules."
@@ -701,19 +947,17 @@ main() {
 
     # ── Create .claude/rules/ ─────────────────────────────────────────────
 
+    local rules_dir
+    local rules_label_prefix
+    if [[ "${GLOBAL_INSTALL}" == true ]]; then
+        rules_dir="${target_dir}/rules"
+        rules_label_prefix="~/.claude/rules"
+    else
+        rules_dir="${target_dir}/.claude/rules"
+        rules_label_prefix=".claude/rules"
+    fi
     step "Installing coding rules"
-
-    local rules_dir="${target_dir}/.claude/rules"
-    mkdir -p "${rules_dir}"
-
-    write_file "${rules_dir}/general.md" "$(generate_rule_general)" ".claude/rules/general.md"
-
-    for lang in ${languages}; do
-        local generator_fn="generate_rule_${lang}"
-        if declare -f "${generator_fn}" > /dev/null 2>&1; then
-            write_file "${rules_dir}/${lang}.md" "$(${generator_fn})" ".claude/rules/${lang}.md"
-        fi
-    done
+    run_with_spinner "Applying rule files" install_rules "${rules_dir}" "${languages}" "${rules_label_prefix}"
 
     # ── Create .claude/context/ ───────────────────────────────────────────
 
