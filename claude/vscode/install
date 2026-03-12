@@ -123,9 +123,22 @@ append_line() {
 
 # ── Language Detection ────────────────────────────────────────────────────────
 
+has_files() {
+    # Portable alternative to compgen -G / globstar
+    # Uses find with early exit for performance
+    local dir="$1"
+    shift
+    for pattern in "$@"; do
+        if find "${dir}" -maxdepth 4 -name "${pattern}" -print -quit 2>/dev/null | grep -q .; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 detect_languages() {
     local dir="$1"
-    local -a found=()
+    local result=""
 
     # Python
     if [[ -f "${dir}/pyproject.toml" ]] || \
@@ -133,9 +146,8 @@ detect_languages() {
        [[ -f "${dir}/requirements.txt" ]] || \
        [[ -f "${dir}/Pipfile" ]] || \
        [[ -f "${dir}/poetry.lock" ]] || \
-       compgen -G "${dir}/**/*.py" > /dev/null 2>&1 || \
-       compgen -G "${dir}/*.py" > /dev/null 2>&1; then
-        found+=("python")
+       has_files "${dir}" "*.py"; then
+        result="${result}python "
     fi
 
     # Java
@@ -143,42 +155,37 @@ detect_languages() {
        [[ -f "${dir}/build.gradle" ]] || \
        [[ -f "${dir}/build.gradle.kts" ]] || \
        [[ -d "${dir}/src/main/java" ]] || \
-       compgen -G "${dir}/**/*.java" > /dev/null 2>&1; then
-        found+=("java")
+       has_files "${dir}" "*.java"; then
+        result="${result}java "
     fi
 
     # Rust
     if [[ -f "${dir}/Cargo.toml" ]] || \
-       compgen -G "${dir}/**/*.rs" > /dev/null 2>&1 || \
-       compgen -G "${dir}/src/*.rs" > /dev/null 2>&1; then
-        found+=("rust")
+       has_files "${dir}" "*.rs"; then
+        result="${result}rust "
     fi
 
     # TypeScript
     if [[ -f "${dir}/tsconfig.json" ]] || \
-       compgen -G "${dir}/**/*.ts" > /dev/null 2>&1 || \
-       compgen -G "${dir}/**/*.tsx" > /dev/null 2>&1 || \
-       compgen -G "${dir}/src/*.ts" > /dev/null 2>&1; then
-        found+=("typescript")
+       has_files "${dir}" "*.ts" "*.tsx"; then
+        result="${result}typescript "
     fi
 
     # Go
     if [[ -f "${dir}/go.mod" ]] || \
-       compgen -G "${dir}/**/*.go" > /dev/null 2>&1 || \
-       compgen -G "${dir}/*.go" > /dev/null 2>&1; then
-        found+=("go")
+       has_files "${dir}" "*.go"; then
+        result="${result}go "
     fi
 
     # C/C++
     if [[ -f "${dir}/CMakeLists.txt" ]] || \
        [[ -f "${dir}/Makefile" ]] || \
-       compgen -G "${dir}/**/*.c" > /dev/null 2>&1 || \
-       compgen -G "${dir}/**/*.cpp" > /dev/null 2>&1 || \
-       compgen -G "${dir}/**/*.h" > /dev/null 2>&1; then
-        found+=("c_cpp")
+       has_files "${dir}" "*.c" "*.cpp" "*.h" "*.hpp"; then
+        result="${result}c_cpp "
     fi
 
-    printf '%s\n' "${found[@]}"
+    # Output trimmed result (space-separated)
+    printf '%s' "${result% }"
 }
 
 # ── Embedded File Contents ────────────────────────────────────────────────────
@@ -570,26 +577,30 @@ main() {
 
     # ── Detect languages ──────────────────────────────────────────────────
 
-    local -a languages=()
+    languages=""
 
     if [[ "${GLOBAL_INSTALL}" == true ]] || [[ "${AUTO_DETECT}" == false ]]; then
-        languages=("python" "java" "rust" "typescript" "go" "c_cpp")
+        languages="python java rust typescript go c_cpp"
         info "Installing all language rules"
     else
         step "Detecting project languages"
 
-        mapfile -t languages < <(detect_languages "${target_dir}")
+        languages="$(detect_languages "${target_dir}")"
 
-        if [[ ${#languages[@]} -eq 0 ]]; then
-            warn "No languages detected. Installing all rules."
-            languages=("python" "java" "rust" "typescript" "go" "c_cpp")
+        if [[ -z "${languages}" ]]; then
+            warn "No languages detected (empty project). Installing all rules."
+            languages="python java rust typescript go c_cpp"
         else
-            for lang in "${languages[@]}"; do
-                local display_name="${lang}"
+            for lang in ${languages}; do
+                local display_name
                 case "${lang}" in
-                    c_cpp) display_name="C/C++" ;;
+                    c_cpp)      display_name="C/C++" ;;
                     typescript) display_name="TypeScript" ;;
-                    *) display_name="$(echo "${lang}" | sed 's/./\U&/')" ;;
+                    python)     display_name="Python" ;;
+                    java)       display_name="Java" ;;
+                    rust)       display_name="Rust" ;;
+                    go)         display_name="Go" ;;
+                    *)          display_name="${lang}" ;;
                 esac
                 success "Found: ${BOLD}${display_name}${RESET}"
             done
@@ -616,7 +627,7 @@ main() {
 
     write_file "${rules_dir}/general.md" "$(generate_rule_general)" ".claude/rules/general.md"
 
-    for lang in "${languages[@]}"; do
+    for lang in ${languages}; do
         local generator_fn="generate_rule_${lang}"
         if declare -f "${generator_fn}" > /dev/null 2>&1; then
             write_file "${rules_dir}/${lang}.md" "$(${generator_fn})" ".claude/rules/${lang}.md"
@@ -681,7 +692,7 @@ CTX_EOF
             "$(generate_copilot_instructions)" \
             ".github/copilot-instructions.md"
 
-        for lang in "${languages[@]}"; do
+        for lang in ${languages}; do
             local generator_fn="generate_rule_${lang}"
             if declare -f "${generator_fn}" > /dev/null 2>&1; then
                 local copilot_content
