@@ -372,24 +372,46 @@ verify_integrity() {
         exit 1
     fi
 
-    local tmpdir
-    tmpdir="$(mktemp -d)" || { error "Failed to create temp directory"; exit 1; }
-    trap 'rm -rf -- "${tmpdir:-}"' EXIT
+    local script_path="${BASH_SOURCE[0]:-}"
+    local script_dir=""
+    local installer_file=""
+    local checksum_file=""
+    local tmpdir=""
 
-    if ! curl -fsSL "${url}" -o "${tmpdir}/install" 2>/dev/null; then
-        error "Failed to download installer from ${url}"
-        exit 1
+    if [[ -n "${script_path}" ]] && [[ -f "${script_path}" ]]; then
+        script_dir="$(cd "$(dirname "${script_path}")" && pwd)"
     fi
 
-    if ! curl -fsSL "${checksum_url}" -o "${tmpdir}/install.sha256" 2>/dev/null; then
-        error "No checksum file found at ${checksum_url}"
-        info "Generate one with: sha256sum install > install.sha256"
-        exit 1
+    if [[ -n "${script_dir}" ]] && [[ -f "${script_dir}/install" ]] && [[ -f "${script_dir}/install.sha256" ]]; then
+        installer_file="${script_dir}/install"
+        checksum_file="${script_dir}/install.sha256"
+        info "Using local checksum file"
+    else
+        tmpdir="$(mktemp -d)" || { error "Failed to create temp directory"; exit 1; }
+        installer_file="${tmpdir}/install"
+        checksum_file="${tmpdir}/install.sha256"
+
+        if ! curl -fsSL "${url}" -o "${installer_file}" 2>/dev/null; then
+            rm -rf -- "${tmpdir}"
+            error "Failed to download installer from ${url}"
+            exit 1
+        fi
+
+        if ! curl -fsSL "${checksum_url}" -o "${checksum_file}" 2>/dev/null; then
+            rm -rf -- "${tmpdir}"
+            error "No checksum file found at ${checksum_url}"
+            info "Generate one with: bash claude/vscode/generate-checksum.sh"
+            exit 1
+        fi
     fi
 
     local expected actual
-    expected="$(awk '{print $1}' "${tmpdir}/install.sha256")"
-    actual="$(${sha_tool} "${tmpdir}/install" | awk '{print $1}')"
+    expected="$(awk '{print $1}' "${checksum_file}")"
+    actual="$(${sha_tool} "${installer_file}" | awk '{print $1}')"
+
+    if [[ -n "${tmpdir}" ]]; then
+        rm -rf -- "${tmpdir}"
+    fi
 
     if [[ "${expected}" == "${actual}" ]]; then
         success "Integrity verified ${DIM}(SHA-256: ${actual:0:16}...)${RESET}"
