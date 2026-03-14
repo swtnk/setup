@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Installer interactive option toggle UI now uses a terminal-capability guard and fallback redraw path, preventing broken rendering in some macOS terminal environments
+- Removed timeout-based escape discard reads in interactive prompts to avoid shell portability issues across terminal/bash variants
+
+### Changed
+- When language auto-detection returns empty, installer now consistently installs all language rules without prompting for manual language selection
+- Removed redundant `Continue? [Y/n]` confirmation after option selection; installer proceeds immediately with visible selected options
+
 ## [2.0.1] - 2026-03-12
 
 ### Fixed

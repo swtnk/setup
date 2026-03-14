@@ -27,7 +27,7 @@ curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash
 9. **Testing is Mandatory** — Unit + integration tests alongside implementation, never after
 10. **Ask When Uncertain** — Stop and ask when ambiguous, present trade-offs, check in at milestones
 
-**Additional features:** Language auto-detection (Python, Java, Rust, TypeScript, Go, C/C++), project memory (`.claude/context/`), task decomposition workflow, GitHub Copilot support.
+**Additional features:** Language auto-detection (Python, Java, Rust, TypeScript, Go, C/C++), deterministic fallback to install all language rules when detection is empty, project memory (`.claude/context/`), task decomposition workflow, GitHub Copilot support.
 
 **What gets created:**
 

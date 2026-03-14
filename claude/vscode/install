@@ -92,6 +92,25 @@ repeat_char() {
     printf "%${count}s" "" | tr ' ' "${char}"
 }
 
+is_interactive_tty() {
+    [[ -t 1 ]] && [[ "${CI:-}" != "true" ]] && [[ -r /dev/tty ]]
+}
+
+supports_live_redraw() {
+    if ! is_interactive_tty; then
+        return 1
+    fi
+
+    if ! command -v tput > /dev/null 2>&1; then
+        return 1
+    fi
+
+    tput sc > /dev/null 2>&1 || return 1
+    tput rc > /dev/null 2>&1 || return 1
+    tput ed > /dev/null 2>&1 || return 1
+    return 0
+}
+
 banner() {
     local art1_plain="░█▀▀░█░░░█▀█░█░█░█▀▄░█▀▀░█▀▀░█▀█░█▀▄░█▀▀"
     local art2_plain="░█░░░█░░░█▀█░█░█░█░█░█▀▀░█░░░█░█░█░█░█▀▀"
@@ -179,16 +198,26 @@ show_runtime_options() {
 }
 
 interactive_select_options() {
-    if [[ ! -t 1 ]] || [[ "${CI:-}" == "true" ]] || [[ ! -r /dev/tty ]]; then
+    if ! is_interactive_tty; then
         return 0
     fi
 
     printf "  ${BOLD}Select options (live):${RESET}\n"
     printf "  ${DIM}Press 1-4 to toggle instantly. Press Enter to continue, q to cancel.${RESET}\n\n"
-    printf "\033[s"
+
+    local live_redraw=false
+    if supports_live_redraw; then
+        live_redraw=true
+        tput sc
+    fi
 
     while true; do
-        printf "\033[u\033[J"
+        if [[ "${live_redraw}" == true ]]; then
+            tput rc
+            tput ed
+        else
+            printf "\n"
+        fi
 
         local copilot_box
         local global_box
@@ -218,7 +247,6 @@ interactive_select_options() {
         IFS= read -rsn1 key < /dev/tty || true
 
         if [[ "${key}" == $'\x1b' ]]; then
-            IFS= read -rsn2 -t 0.01 _discard < /dev/tty || true
             continue
         fi
 
@@ -248,7 +276,7 @@ interactive_select_options() {
 }
 
 confirm_if_interactive() {
-    if [[ ! -t 1 ]] || [[ ! -r /dev/tty ]]; then
+    if ! is_interactive_tty; then
         return 0
     fi
 
@@ -819,7 +847,6 @@ main() {
     banner
     interactive_select_options
     show_runtime_options
-    confirm_if_interactive
 
     # ── Determine install target ──────────────────────────────────────────
 
@@ -845,61 +872,8 @@ main() {
         languages="$(run_with_spinner "Scanning project files" detect_languages "${target_dir}")"
 
         if [[ -z "${languages}" ]]; then
-            if [[ -t 1 ]] && [[ "${CI:-}" != "true" ]] && [[ -r /dev/tty ]]; then
-                warn "No languages detected."
-                printf "  ${BOLD}Select languages to install:${RESET}\n"
-                printf "  ${DIM}Press numbers to toggle, Enter to confirm, a for all.${RESET}\n\n"
-
-                local lang_python=false lang_java=false lang_rust=false
-                local lang_typescript=false lang_go=false lang_c_cpp=false
-                printf "\033[s"
-
-                while true; do
-                    printf "\033[u\033[J"
-                    printf "    1) %b Python\n" "$(checkbox "${lang_python}")"
-                    printf "    2) %b Java\n" "$(checkbox "${lang_java}")"
-                    printf "    3) %b Rust\n" "$(checkbox "${lang_rust}")"
-                    printf "    4) %b TypeScript\n" "$(checkbox "${lang_typescript}")"
-                    printf "    5) %b Go\n" "$(checkbox "${lang_go}")"
-                    printf "    6) %b C/C++\n" "$(checkbox "${lang_c_cpp}")"
-                    printf "\n  ${BOLD}Select:${RESET} ${DIM}[1-6 toggle, a all, Enter confirm]${RESET} "
-
-                    local lkey
-                    IFS= read -rsn1 lkey < /dev/tty || true
-                    if [[ "${lkey}" == $'\x1b' ]]; then
-                        IFS= read -rsn2 -t 0.01 _discard < /dev/tty || true
-                        continue
-                    fi
-                    case "${lkey}" in
-                        "") printf "\n"; break ;;
-                        1) toggle_bool_var "lang_python" ;;
-                        2) toggle_bool_var "lang_java" ;;
-                        3) toggle_bool_var "lang_rust" ;;
-                        4) toggle_bool_var "lang_typescript" ;;
-                        5) toggle_bool_var "lang_go" ;;
-                        6) toggle_bool_var "lang_c_cpp" ;;
-                        a|A) lang_python=true; lang_java=true; lang_rust=true
-                             lang_typescript=true; lang_go=true; lang_c_cpp=true ;;
-                    esac
-                done
-
-                languages=""
-                [[ "${lang_python}" == true ]] && languages="${languages}python "
-                [[ "${lang_java}" == true ]] && languages="${languages}java "
-                [[ "${lang_rust}" == true ]] && languages="${languages}rust "
-                [[ "${lang_typescript}" == true ]] && languages="${languages}typescript "
-                [[ "${lang_go}" == true ]] && languages="${languages}go "
-                [[ "${lang_c_cpp}" == true ]] && languages="${languages}c_cpp "
-                languages="${languages% }"
-
-                if [[ -z "${languages}" ]]; then
-                    warn "No languages selected. Installing all rules."
-                    languages="python java rust typescript go c_cpp"
-                fi
-            else
-                warn "No languages detected (empty project). Installing all rules."
-                languages="python java rust typescript go c_cpp"
-            fi
+            warn "No languages detected. Installing all language rules."
+            languages="python java rust typescript go c_cpp"
         else
             for lang in ${languages}; do
                 local display_name
