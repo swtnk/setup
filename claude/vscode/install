@@ -374,7 +374,7 @@ verify_integrity() {
 
     local tmpdir
     tmpdir="$(mktemp -d)" || { error "Failed to create temp directory"; exit 1; }
-    trap "rm -rf -- \"${tmpdir}\"" EXIT
+    trap 'rm -rf -- "${tmpdir:-}"' EXIT
 
     if ! curl -fsSL "${url}" -o "${tmpdir}/install" 2>/dev/null; then
         error "Failed to download installer from ${url}"
@@ -1028,8 +1028,8 @@ CTX_EOF
 
     if [[ "${GLOBAL_INSTALL}" == true ]]; then
         printf "  ${BOLD}Installed to:${RESET}\n"
-        print_summary_row "~/.claude/CLAUDE.md" "Main instructions"
-        print_summary_row "~/.claude/rules/" "Language-specific rules"
+        print_summary_row "$HOME/.claude/CLAUDE.md" "Main instructions"
+        print_summary_row "$HOME/.claude/rules/" "Language-specific rules"
     else
         printf "  ${BOLD}Created:${RESET}\n"
         print_summary_row "CLAUDE.md" "Main instructions (Claude Code reads this)"
