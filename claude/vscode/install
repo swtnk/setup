@@ -13,7 +13,8 @@
 #   --global      Install to ~/.claude/ (global, applies to all projects)
 #   --force       Overwrite existing files without prompting
 #   --no-detect   Skip language auto-detection, install all language rules
-#   --verify      Download and verify checksum, don't install
+#   --no-verify   Skip checksum verification before install
+#   --verify-only Download and verify checksum, don't install
 #   --help        Show help
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ SETUP_COPILOT=false
 GLOBAL_INSTALL=false
 FORCE_OVERWRITE=false
 AUTO_DETECT=true
+VERIFY_BEFORE_INSTALL=true
 VERIFY_ONLY=false
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -64,6 +66,12 @@ success() { printf "  ${CHECK} %b\n" "$1"; }
 warn()    { printf "  ${YELLOW}!${RESET} %b\n" "$1"; }
 error()   { printf "  ${CROSS} %b\n" "$1" >&2; }
 step()    { printf "\n  ${ARROW} ${BOLD}%b${RESET}\n" "$1"; }
+
+print_summary_row() {
+    local path_label="$1"
+    local description="$2"
+    printf "    ${DIM}%-24s${RESET} ${GRAY}%s${RESET}\n" "${path_label}" "${description}"
+}
 
 toggle_bool_var() {
     local var_name="$1"
@@ -175,6 +183,7 @@ show_runtime_options() {
     local global_status="${disabled}"
     local force_status="${disabled}"
     local no_detect_status="${disabled}"
+    local verify_status="${disabled}"
 
     if [[ "${SETUP_COPILOT}" == true ]]; then
         copilot_status="${enabled}"
@@ -188,12 +197,16 @@ show_runtime_options() {
     if [[ "${AUTO_DETECT}" == false ]]; then
         no_detect_status="${enabled}"
     fi
+    if [[ "${VERIFY_BEFORE_INSTALL}" == true ]]; then
+        verify_status="${enabled}"
+    fi
 
     printf "  ${BOLD}Options:${RESET}\n"
     printf "    --copilot    %b\n" "${copilot_status}"
     printf "    --global     %b\n" "${global_status}"
     printf "    --force      %b\n" "${force_status}"
     printf "    --no-detect  %b ${DIM}(skip auto-detect languages)${RESET}\n" "${no_detect_status}"
+    printf "    --verify     %b ${DIM}(Verify installer integrity)${RESET}\n" "${verify_status}"
     printf "\n"
 }
 
@@ -203,7 +216,7 @@ interactive_select_options() {
     fi
 
     printf "  ${BOLD}Select options (live):${RESET}\n"
-    printf "  ${DIM}Press 1-4 to toggle instantly. Press Enter to continue, q to cancel.${RESET}\n\n"
+    printf "  ${DIM}Press 1-5 to toggle instantly. Press Enter to continue, q to cancel.${RESET}\n\n"
 
     local live_redraw=false
     if supports_live_redraw; then
@@ -223,9 +236,11 @@ interactive_select_options() {
         local global_box
         local force_box
         local no_detect_box
+        local verify_box
         copilot_box="$(checkbox "${SETUP_COPILOT}")"
         global_box="$(checkbox "${GLOBAL_INSTALL}")"
         force_box="$(checkbox "${FORCE_OVERWRITE}")"
+        verify_box="$(checkbox "${VERIFY_BEFORE_INSTALL}")"
 
         if [[ "${AUTO_DETECT}" == false ]]; then
             no_detect_box="$(checkbox true)"
@@ -233,15 +248,17 @@ interactive_select_options() {
             no_detect_box="$(checkbox false)"
         fi
 
+        local copilot_desc="[setup GitHub Copilot files]"
         if [[ "${GLOBAL_INSTALL}" == true ]] && [[ "${SETUP_COPILOT}" == true ]]; then
-            printf "    1) %b --copilot ${DIM}(skipped with --global)${RESET}\n" "${copilot_box}"
-        else
-            printf "    1) %b --copilot\n" "${copilot_box}"
+            copilot_desc="${copilot_desc} (skipped with --global)"
         fi
-        printf "    2) %b --global\n" "${global_box}"
-        printf "    3) %b --force\n" "${force_box}"
-        printf "    4) %b --no-detect\n" "${no_detect_box}"
-        printf "\n  ${BOLD}Select:${RESET} ${DIM}[1-4 toggle, Enter continue, q cancel]${RESET} "
+
+        printf "    1) %b %-11s ${DIM}%s${RESET}\n" "${copilot_box}" "--copilot" "${copilot_desc}"
+        printf "    2) %b %-11s ${DIM}%s${RESET}\n" "${global_box}" "--global" "[install to ~/.claude]"
+        printf "    3) %b %-11s ${DIM}%s${RESET}\n" "${force_box}" "--force" "[overwrite existing files]"
+        printf "    4) %b %-11s ${DIM}%s${RESET}\n" "${no_detect_box}" "--no-detect" "[install all language rules]"
+        printf "    5) %b %-11s ${DIM}%s${RESET}\n" "${verify_box}" "--verify" "[Verify installer integrity]"
+        printf "\n  ${BOLD}Select:${RESET} ${DIM}[1-5 toggle, Enter continue, q cancel]${RESET} "
 
         local key
         IFS= read -rsn1 key < /dev/tty || true
@@ -266,6 +283,9 @@ interactive_select_options() {
                 ;;
             4)
                 toggle_bool_var "AUTO_DETECT"
+                ;;
+            5)
+                toggle_bool_var "VERIFY_BEFORE_INSTALL"
                 ;;
             q|Q)
                 printf "\n\n  ${YELLOW}Cancelled by user.${RESET}\n\n"
@@ -354,7 +374,7 @@ verify_integrity() {
 
     local tmpdir
     tmpdir="$(mktemp -d)" || { error "Failed to create temp directory"; exit 1; }
-    trap 'rm -rf "${tmpdir}"' EXIT
+    trap "rm -rf -- \"${tmpdir}\"" EXIT
 
     if ! curl -fsSL "${url}" -o "${tmpdir}/install" 2>/dev/null; then
         error "Failed to download installer from ${url}"
@@ -408,7 +428,8 @@ show_help() {
     printf "    --global      Install to ~/.claude/ (applies to all projects)\n"
     printf "    --force       Overwrite existing files without prompting\n"
     printf "    --no-detect   Skip language detection, install all rules\n"
-    printf "    --verify      Verify installer checksum (download-and-check)\n"
+    printf "    --no-verify   Skip checksum verification before install\n"
+    printf "    --verify-only Verify installer checksum only (download-and-check)\n"
     printf "    --version     Show version number\n"
     printf "    --help        Show this help message\n\n"
     exit 0
@@ -823,7 +844,8 @@ parse_args() {
             --global)     GLOBAL_INSTALL=true ;;
             --force)      FORCE_OVERWRITE=true ;;
             --no-detect)  AUTO_DETECT=false ;;
-            --verify)     VERIFY_ONLY=true ;;
+            --no-verify)  VERIFY_BEFORE_INSTALL=false ;;
+            --verify-only|--verify) VERIFY_ONLY=true ;;
             --version|-v) printf "Claude Code Setup v%s\n" "${VERSION}"; exit 0 ;;
             --help|-h)    show_help ;;
             *)
@@ -847,6 +869,12 @@ main() {
     banner
     interactive_select_options
     show_runtime_options
+
+    if [[ "${VERIFY_BEFORE_INSTALL}" == true ]]; then
+        verify_integrity
+    else
+        warn "Checksum verification skipped (--no-verify)"
+    fi
 
     # ── Determine install target ──────────────────────────────────────────
 
@@ -951,7 +979,7 @@ across conversations. This directory is excluded from git and Docker builds.
 CTX_EOF
 )"
         write_file "${context_dir}/README.md" "${context_readme}" ".claude/context/README.md"
-        success "Ready: ${DIM}.claude/context/${RESET} ${GRAY}(Claude will create and populate files on first use)${RESET}"
+        success "Ready:   ${DIM}.claude/context/${RESET} ${GRAY}(Claude will create and populate files on first use)${RESET}"
     fi
 
     # ── Update .gitignore ─────────────────────────────────────────────────
@@ -1000,15 +1028,15 @@ CTX_EOF
 
     if [[ "${GLOBAL_INSTALL}" == true ]]; then
         printf "  ${BOLD}Installed to:${RESET}\n"
-        printf "    ${DIM}~/.claude/CLAUDE.md${RESET}       ${GRAY}Main instructions${RESET}\n"
-        printf "    ${DIM}~/.claude/rules/${RESET}           ${GRAY}Language-specific rules${RESET}\n"
+        print_summary_row "~/.claude/CLAUDE.md" "Main instructions"
+        print_summary_row "~/.claude/rules/" "Language-specific rules"
     else
         printf "  ${BOLD}Created:${RESET}\n"
-        printf "    ${DIM}CLAUDE.md${RESET}                  ${GRAY}Main instructions (Claude Code reads this)${RESET}\n"
-        printf "    ${DIM}.claude/rules/${RESET}              ${GRAY}Language-specific rules${RESET}\n"
-        printf "    ${DIM}.claude/context/${RESET}            ${GRAY}Project memory (auto-populated)${RESET}\n"
+        print_summary_row "CLAUDE.md" "Main instructions (Claude Code reads this)"
+        print_summary_row ".claude/rules/" "Language-specific rules"
+        print_summary_row ".claude/context/" "Project memory (auto-populated)"
         if [[ "${SETUP_COPILOT}" == true ]]; then
-            printf "    ${DIM}.github/copilot-*.md${RESET}     ${GRAY}Copilot instructions${RESET}\n"
+            print_summary_row ".github/copilot-*.md" "Copilot instructions"
         fi
     fi
 

@@ -306,11 +306,13 @@
                 <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash
             </button>
             <div class="flags">
+                <div class="flag"><code>default</code> <span>Verifies installer checksum before setup</span></div>
                 <div class="flag"><code>--copilot</code> <span>Also set up GitHub Copilot instructions</span></div>
                 <div class="flag"><code>--global</code> <span>Install to ~/.claude/ for all projects</span></div>
                 <div class="flag"><code>--force</code> <span>Overwrite existing files</span></div>
                 <div class="flag"><code>--no-detect</code> <span>Skip language detection, install all rules</span></div>
-                <div class="flag"><code>--verify</code> <span>Download and verify installer checksum</span></div>
+                <div class="flag"><code>--no-verify</code> <span>Skip checksum verification before install</span></div>
+                <div class="flag"><code>--verify-only</code> <span>Download and verify checksum only, then exit</span></div>
             </div>
 
             <div class="examples">
@@ -336,6 +338,14 @@
                     <div class="example-label">Force + all languages</div>
                     <div class="example-cmd" data-cmd="curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash -s -- --force --no-detect">
                         <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash -s -- --force --no-detect
+                        <button class="cmd-copy-btn" type="button">Copy</button>
+                    </div>
+                </div>
+
+                <div class="example-item">
+                    <div class="example-label">Verify checksum only</div>
+                    <div class="example-cmd" data-cmd="curl -fsSL https://swetanksubham.com/setup/claude/vscode/install | bash -s -- --verify-only">
+                        <span class="prompt">$ </span>curl -fsSL <span class="url">https://swetanksubham.com/setup/claude/vscode/install</span> <span class="pipe">|</span> bash -s -- --verify-only
                         <button class="cmd-copy-btn" type="button">Copy</button>
                     </div>
                 </div>

@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - When language auto-detection returns empty, installer now consistently installs all language rules without prompting for manual language selection
 - Removed redundant `Continue? [Y/n]` confirmation after option selection; installer proceeds immediately with visible selected options
+- Added checksum verification as a selectable installer option (default ON); installer now verifies before setup and aborts on verification failure
+- Added `--no-verify` (skip pre-install verification) and `--verify-only` (verify and exit) flags
 
 ## [2.0.1] - 2026-03-12
 

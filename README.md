@@ -64,7 +64,8 @@ your-project/
 | `--global` | Install to `~/.claude/` (applies to all projects) |
 | `--force` | Overwrite existing files (use to upgrade from v1) |
 | `--no-detect` | Install all language rules |
-| `--verify` | Download and verify installer checksum |
+| `--no-verify` | Skip checksum verification before install |
+| `--verify-only` | Download and verify installer checksum only |
 
 **Examples:**
 
